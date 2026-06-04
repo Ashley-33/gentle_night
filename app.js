@@ -604,7 +604,12 @@
       const target = tab.dataset.tab;
       tabs.forEach((t) => t.classList.toggle("is-active", t === tab));
       pages.forEach((p) => p.classList.toggle("is-active", p.dataset.page === target));
-      if (target === "trends") { renderJars(); renderInsights(); }
+      if (target === "trends") {
+        renderJars();
+        renderInsights();
+        startPhysics();
+        requestMotionPermission();
+      }
     });
   });
 
@@ -615,6 +620,7 @@
       currentRange = pill.dataset.range;
       renderJars();
       renderInsights();
+      startPhysics();
     });
   });
 
@@ -622,6 +628,217 @@
   const kf = document.createElement("style");
   kf.textContent = "@keyframes beadRise{from{transform:translateY(16px) scale(.4);opacity:0}to{transform:none}}";
   document.head.appendChild(kf);
+
+  /* ═══════════════════════════════════════════════════════════
+     Jar Physics — gravity-responsive bead motion
+     Shake your phone → beads rattle inside the glass jars.
+     Desktop fallback: subtle idle float animation.
+     ═══════════════════════════════════════════════════════════ */
+  const PHYS = {
+    damping: 0.94,
+    gravityScale: 580,
+    restitution: 0.32,
+    idleThreshold: 0.15,
+  };
+
+  let physJars = [];       // { jarEl, beads:[{el,x,y,vx,vy,r}], w, h, topR, botR }
+  let physRaf = null;
+  let motionG = { x: 0, y: 0.3 }; // default: gentle downward gravity
+  let lastMotionT = 0;
+  let hasSensor = false;
+
+  /* ---- rounded-rect corner distance ---- */
+  function cornerDist(bx, by, cx, cy, beadR, cornerR) {
+    const dx = bx - cx, dy = by - cy;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    return cornerR - beadR - d; // positive = still inside, negative = penetration
+  }
+  function pushOut(bead, cx, cy, nx, ny, margin) {
+    bead.x = cx + nx * margin;
+    bead.y = cy + ny * margin;
+    const dot = bead.vx * nx + bead.vy * ny;
+    if (dot < 0) {
+      bead.vx -= (1 + PHYS.restitution) * dot * nx;
+      bead.vy -= (1 + PHYS.restitution) * dot * ny;
+    }
+  }
+
+  /* ---- collide bead vs jar walls (rounded rect) ---- */
+  function jarCollide(b, jar) {
+    const { w, h, topR, botR } = jar;
+    const { x, y, r } = b;
+    let collided = false;
+
+    // top-left corner
+    const tl = cornerDist(x, y, topR, topR, r, topR);
+    if (tl < 0) {
+      const d = Math.sqrt((x - topR) ** 2 + (y - topR) ** 2) || 0.01;
+      pushOut(b, topR, topR, (x - topR) / d, (y - topR) / d, topR - r);
+      collided = true;
+    }
+    // top-right corner
+    const tr = cornerDist(x, y, w - topR, topR, r, topR);
+    if (tr < 0) {
+      const d = Math.sqrt((x - (w - topR)) ** 2 + (y - topR) ** 2) || 0.01;
+      pushOut(b, w - topR, topR, (x - (w - topR)) / d, (y - topR) / d, topR - r);
+      collided = true;
+    }
+    // bottom-left corner
+    const bl = cornerDist(x, y, botR, h - botR, r, botR);
+    if (bl < 0) {
+      const d = Math.sqrt((x - botR) ** 2 + (y - (h - botR)) ** 2) || 0.01;
+      pushOut(b, botR, h - botR, (x - botR) / d, (y - (h - botR)) / d, botR - r);
+      collided = true;
+    }
+    // bottom-right corner
+    const br = cornerDist(x, y, w - botR, h - botR, r, botR);
+    if (br < 0) {
+      const d = Math.sqrt((x - (w - botR)) ** 2 + (y - (h - botR)) ** 2) || 0.01;
+      pushOut(b, w - botR, h - botR, (x - (w - botR)) / d, (y - (h - botR)) / d, botR - r);
+      collided = true;
+    }
+
+    // straight walls (only when outside corner radius zone)
+    const inTopCorner = y < topR && (x < topR || x > w - topR);
+    const inBotCorner = y > h - botR && (x < botR || x > w - botR);
+
+    if (!inTopCorner && !inBotCorner) {
+      if (x - r < 0) { b.x = r; b.vx = Math.abs(b.vx) * PHYS.restitution; collided = true; }
+      if (x + r > w) { b.x = w - r; b.vx = -Math.abs(b.vx) * PHYS.restitution; collided = true; }
+      if (y - r < 0) { b.y = r; b.vy = Math.abs(b.vy) * PHYS.restitution; collided = true; }
+      if (y + r > h) { b.y = h - r; b.vy = -Math.abs(b.vy) * PHYS.restitution;
+        if (Math.abs(b.vy) < 2) b.vx *= 0.8; // floor friction
+        collided = true;
+      }
+    }
+    return collided;
+  }
+
+  /* ---- initialise physics for a single jar ---- */
+  function initJarPhysics(jarEl) {
+    const glass = jarEl.querySelector(".jar-glass");
+    const fill = jarEl.querySelector(".jar-fill");
+    const beads = fill.querySelectorAll(".bead");
+    if (!beads.length) return;
+
+    const w = glass.clientWidth;
+    const h = glass.clientHeight;
+
+    // CSS border-radius: 9px 9px 30px 30px
+    const topR = 9, botR = 30;
+
+    const pb = [];
+    beads.forEach((el) => {
+      const bw = parseFloat(el.style.width);
+      const bl = parseFloat(el.style.left);
+      const bt = parseFloat(el.style.top);
+      const r = bw / 2;
+      pb.push({ el, r, x: bl + r, y: bt + r, vx: 0, vy: 0 });
+    });
+
+    // deduplicate by jar
+    physJars = physJars.filter((p) => p.jarEl !== jarEl);
+    physJars.push({ jarEl, beads: pb, w, h, topR, botR });
+  }
+
+  /* ---- physics animation loop ---- */
+  function physTick(ts) {
+    if (!physTick._prev) physTick._prev = ts;
+    const dt = Math.min((ts - physTick._prev) / 1000, 0.04);
+    physTick._prev = ts;
+
+    const idle = hasSensor
+      ? ts - lastMotionT > 2500
+      : false; // desktop: never goes idle (runs idle float)
+
+    // Bail if idle & all beads at rest
+    if (idle) {
+      const anyMotion = physJars.some((j) =>
+        j.beads.some((b) => Math.abs(b.vx) > PHYS.idleThreshold || Math.abs(b.vy) > PHYS.idleThreshold)
+      );
+      if (!anyMotion) {
+        document.getElementById("jars")?.classList.remove("jars--shaking");
+        physRaf = null;
+        return;
+      }
+    }
+
+    const gx = motionG.x * PHYS.gravityScale;
+    const gy = motionG.y * PHYS.gravityScale;
+
+    for (const jar of physJars) {
+      for (const b of jar.beads) {
+        b.vx += gx * dt;
+        b.vy += gy * dt;
+        b.vx *= PHYS.damping;
+        b.vy *= PHYS.damping;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        jarCollide(b, jar);
+
+        // clamp to jar bounds (safety)
+        b.x = clamp(b.x, b.r, jar.w - b.r);
+        b.y = clamp(b.y, b.r, jar.h - b.r);
+
+        b.el.style.left = b.x - b.r + "px";
+        b.el.style.top = b.y - b.r + "px";
+      }
+    }
+
+    physRaf = requestAnimationFrame(physTick);
+  }
+
+  function startPhysics() {
+    // Wait for bead rise animations to complete, then init
+    setTimeout(() => {
+      $$(".jar").forEach((jar) => initJarPhysics(jar));
+      if (!physRaf) {
+        physTick._prev = performance.now();
+        physRaf = requestAnimationFrame(physTick);
+      }
+    }, 650);
+  }
+
+  /* ---- gyro / accelerometer ---- */
+  function onMotion(e) {
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null) return;
+    hasSensor = true;
+    motionG.x = clamp(g.x / 9.81, -1, 1);
+    motionG.y = clamp(g.y / 9.81, -1, 1);
+    lastMotionT = performance.now();
+    // add a gentle visual cue that shaking is working
+    if (Math.abs(g.x) > 3 || Math.abs(g.y) > 5) {
+      document.getElementById("jars")?.classList.add("jars--shaking");
+    }
+  }
+
+  function requestMotionPermission() {
+    if (typeof DeviceMotionEvent === "undefined") return;
+    if (typeof DeviceMotionEvent.requestPermission === "function") {
+      // iOS 13+ — needs user gesture
+      const banner = document.getElementById("motionHint");
+      if (banner) {
+        banner.classList.add("show");
+        banner.addEventListener("click", () => {
+          DeviceMotionEvent.requestPermission()
+            .then((r) => {
+              if (r === "granted") {
+                window.addEventListener("devicemotion", onMotion, { passive: true });
+                hasSensor = true;
+                banner.textContent = "🫙 摇晃手机，珠子会动哦～";
+                setTimeout(() => banner.classList.remove("show"), 2000);
+              }
+            })
+            .catch(() => {});
+        }, { once: true });
+      }
+    } else {
+      // Android / desktop — just listen
+      window.addEventListener("devicemotion", onMotion, { passive: true });
+      hasSensor = true;
+    }
+  }
 
   /* ───────────────────────── init ───────────────────────── */
   let savedTheme = null;

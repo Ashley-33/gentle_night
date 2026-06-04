@@ -473,6 +473,26 @@ body.show-nums .orb::after { opacity: .5; }
 .jar[data-jar="body"] { --b-light:#f1fbe0; --b-mid:#b0de9d; --b-deep:#90cb7e; --b-glow:rgba(166,221,148,0.45); }
 .jar[data-jar="tomorrow"] { --b-light:#f7eeff; --b-mid:#d0b3ee; --b-deep:#bb99e2; --b-glow:rgba(201,169,236,0.5); }
 
+/* ---- shake hint & jar physics ---- */
+.motion-hint {
+  text-align: center; font-size: 12px; color: var(--txt-faint);
+  margin: -2px 0 4px; opacity: 0; transform: translateY(4px);
+  transition: opacity .5s ease, transform .5s ease;
+  flex: none;
+}
+.motion-hint.show { opacity: 1; transform: translateY(0); }
+
+/* subtle jar wobble when shaking detected */
+@keyframes jarWobble {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
+.jars--shaking .jar {
+  animation: jarWobble .15s ease-in-out;
+  animation-iteration-count: 1;
+}
+
 /* insights */
 .insights { display: flex; gap: 9px; margin-top: 16px; padding: 0 2px; }
 .insight {
