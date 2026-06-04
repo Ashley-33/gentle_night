@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#f3e9dc" />
+  <title>Gentle Night · 温柔夜记</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Quicksand:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
+</head>
+<body>
+  <div class="app">
+    <div class="screen-glow"></div>
+
+    <button class="theme-toggle" id="themeToggle" aria-label="切换深浅主题">
+      <span class="tt-icon">🌙</span>
+    </button>
+
+    <main class="pages">
+      <!-- ============ TONIGHT PAGE ============ -->
+      <section class="page page--tonight is-active" data-page="tonight">
+        <div class="page-scroll">
+          <div class="hero">
+            <div class="hero-moon" aria-hidden="true">
+              <svg class="moon-svg" viewBox="0 0 64 64">
+                <defs>
+                  <linearGradient id="moonGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fff3c6"/>
+                    <stop offset="1" stop-color="#f1c04a"/>
+                  </linearGradient>
+                  <mask id="moonMask">
+                    <rect x="0" y="0" width="64" height="64" fill="#fff"/>
+                    <circle cx="45" cy="24" r="21" fill="#000"/>
+                  </mask>
+                </defs>
+                <circle cx="32" cy="32" r="23" fill="url(#moonGrad)" mask="url(#moonMask)"/>
+              </svg>
+              <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+            </div>
+            <h1 class="hero-title">Tonight</h1>
+            <p class="hero-date" id="heroDate">6月1日 &nbsp;星期一</p>
+            <p class="hero-sub" id="heroQuote">今天也辛苦了。</p>
+          </div>
+
+          <!-- Mood -->
+          <article class="card card--mood" data-metric="mood">
+            <div class="card-head">
+              <span class="card-emoji"><svg class="ic ic-sun" viewBox="0 0 48 48">
+                <defs><radialGradient id="sunBody" cx="40%" cy="32%" r="72%"><stop offset="0" stop-color="#fff9e6"/><stop offset="62%" stop-color="#f9dd92"/><stop offset="100%" stop-color="#f1cd78"/></radialGradient></defs>
+                <g stroke="#f8d98c" stroke-width="2.6" stroke-linecap="round">
+                  <line x1="39" y1="24" x2="44.5" y2="24"/><line x1="34.6" y1="34.6" x2="38.5" y2="38.5"/><line x1="24" y1="39" x2="24" y2="44.5"/><line x1="13.4" y1="34.6" x2="9.5" y2="38.5"/><line x1="9" y1="24" x2="3.5" y2="24"/><line x1="13.4" y1="13.4" x2="9.5" y2="9.5"/><line x1="24" y1="9" x2="24" y2="3.5"/><line x1="34.6" y1="13.4" x2="38.5" y2="9.5"/>
+                </g>
+                <circle cx="24" cy="24" r="13" fill="url(#sunBody)"/>
+                <circle cx="17.5" cy="27" r="2.2" fill="#f3b79c" opacity="0.75"/><circle cx="30.5" cy="27" r="2.2" fill="#f3b79c" opacity="0.75"/>
+                <circle cx="20" cy="23" r="1.4" fill="#b08a4e"/><circle cx="28" cy="23" r="1.4" fill="#b08a4e"/>
+                <path d="M20 27.5 Q24 30.6 28 27.5" fill="none" stroke="#b08a4e" stroke-width="1.5" stroke-linecap="round"/>
+              </svg></span>
+              <div class="card-titles">
+                <h2 class="card-title"><span class="dot">💛</span> Mood</h2>
+                <p class="card-q">今天整体开心吗？</p>
+              </div>
+            </div>
+            <div class="scale" role="radiogroup" aria-label="Mood">
+              <button class="orb" data-value="1" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="2" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="3" role="radio" aria-checked="false"></button>
+              <button class="orb is-on" data-value="4" role="radio" aria-checked="true"></button>
+              <button class="orb" data-value="5" role="radio" aria-checked="false"></button>
+            </div>
+            <div class="scale-labels"><span>很差</span><span>很好</span></div>
+          </article>
+
+          <!-- Body -->
+          <article class="card card--body" data-metric="body">
+            <div class="card-head">
+              <span class="card-emoji"><svg class="ic ic-leaf" viewBox="0 0 48 48">
+                <defs><radialGradient id="leafBody" cx="40%" cy="32%" r="75%"><stop offset="0" stop-color="#dcf3c8"/><stop offset="62%" stop-color="#aedd9c"/><stop offset="100%" stop-color="#8ecb7d"/></radialGradient></defs>
+                <path d="M24 5 C12 13 10 31 24 43 C38 31 36 13 24 5 Z" fill="url(#leafBody)"/>
+                <path d="M24 11 L24 39" fill="none" stroke="#8ecb7d" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                <circle cx="19.5" cy="25" r="1.4" fill="#5a8f49"/><circle cx="28.5" cy="25" r="1.4" fill="#5a8f49"/>
+                <path d="M20 29 Q24 32.2 28 29" fill="none" stroke="#5a8f49" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="17.5" cy="28.5" r="2" fill="#cdeeb6" opacity="0.75"/><circle cx="30.5" cy="28.5" r="2" fill="#cdeeb6" opacity="0.75"/>
+              </svg></span>
+              <div class="card-titles">
+                <h2 class="card-title"><span class="dot">🍃</span> Body</h2>
+                <p class="card-q">今天身体舒服吗？</p>
+              </div>
+            </div>
+            <div class="scale" role="radiogroup" aria-label="Body">
+              <button class="orb" data-value="1" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="2" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="3" role="radio" aria-checked="false"></button>
+              <button class="orb is-on" data-value="4" role="radio" aria-checked="true"></button>
+              <button class="orb" data-value="5" role="radio" aria-checked="false"></button>
+            </div>
+            <div class="scale-labels"><span>很累</span><span>状态很好</span></div>
+          </article>
+
+          <!-- Tomorrow -->
+          <article class="card card--tomorrow" data-metric="tomorrow">
+            <div class="card-head">
+              <span class="card-emoji"><svg class="ic ic-star" viewBox="0 0 48 48">
+                <defs><radialGradient id="starBody" cx="42%" cy="34%" r="72%"><stop offset="0" stop-color="#fff9e6"/><stop offset="62%" stop-color="#f9dd92"/><stop offset="100%" stop-color="#f1cd78"/></radialGradient></defs>
+                <path d="M24 4 L29.5 17.5 L44 18.6 L32.7 27.7 L36.6 41.6 L24 33.3 L11.4 41.6 L15.3 27.7 L4 18.6 L18.5 17.5 Z" fill="url(#starBody)" stroke="#f5d78e" stroke-width="1" stroke-linejoin="round"/>
+                <circle cx="20.5" cy="23" r="1.4" fill="#b08a4e"/><circle cx="27.5" cy="23" r="1.4" fill="#b08a4e"/>
+                <path d="M20.5 26.5 Q24 29.3 27.5 26.5" fill="none" stroke="#b08a4e" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="18.5" cy="26" r="1.8" fill="#f3b79c" opacity="0.65"/><circle cx="29.5" cy="26" r="1.8" fill="#f3b79c" opacity="0.65"/>
+              </svg></span>
+              <div class="card-titles">
+                <h2 class="card-title"><span class="dot">✨</span> Tomorrow</h2>
+                <p class="card-q">对明天感觉怎么样？</p>
+              </div>
+            </div>
+            <div class="scale" role="radiogroup" aria-label="Tomorrow">
+              <button class="orb" data-value="1" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="2" role="radio" aria-checked="false"></button>
+              <button class="orb is-on" data-value="3" role="radio" aria-checked="true"></button>
+              <button class="orb" data-value="4" role="radio" aria-checked="false"></button>
+              <button class="orb" data-value="5" role="radio" aria-checked="false"></button>
+            </div>
+            <div class="scale-labels"><span>很抗拒</span><span>很期待</span></div>
+          </article>
+
+          <button class="goodnight" id="goodnight">
+            <span class="gn-moon">🌙</span>
+            <span class="gn-text">Good night</span>
+          </button>
+          <p class="goodnight-hint" id="goodnightHint">💗 已收下今晚的状态，晚安 🌙</p>
+        </div>
+      </section>
+
+      <!-- ============ TRENDS PAGE ============ -->
+      <section class="page page--trends" data-page="trends">
+        <div class="page-scroll">
+          <div class="trends-head">
+            <div class="trends-title-row">
+              <div>
+                <h1 class="trends-title"><span class="t-spark">✨</span> Your gentle patterns</h1>
+                <p class="trends-sub">你的状态，正在被温柔看见。</p>
+              </div>
+            </div>
+
+            <div class="range" role="tablist">
+              <button class="range-pill is-on" data-range="7天">7天</button>
+              <button class="range-pill" data-range="30天">30天</button>
+              <button class="range-pill" data-range="3个月">3个月</button>
+              <button class="range-pill" data-range="1年">1年</button>
+            </div>
+          </div>
+
+          <div class="jar-labels">
+            <span class="jar-label jl-mood">💛 Mood</span>
+            <span class="jar-label jl-body">🍃 Body</span>
+            <span class="jar-label jl-tomorrow">✨ Tomorrow</span>
+          </div>
+
+          <div class="jars" id="jars">
+            <div class="jar" data-jar="mood">
+              <div class="jar-cork"><span class="cork-top"></span></div>
+              <div class="jar-lip"></div>
+              <div class="jar-glass"><div class="jar-back"></div><div class="jar-fill"></div><div class="jar-glass-overlay"></div></div>
+            </div>
+            <div class="jar" data-jar="body">
+              <div class="jar-cork"><span class="cork-top"></span></div>
+              <div class="jar-lip"></div>
+              <div class="jar-glass"><div class="jar-back"></div><div class="jar-fill"></div><div class="jar-glass-overlay"></div></div>
+            </div>
+            <div class="jar" data-jar="tomorrow">
+              <div class="jar-cork"><span class="cork-top"></span></div>
+              <div class="jar-lip"></div>
+              <div class="jar-glass"><div class="jar-back"></div><div class="jar-fill"></div><div class="jar-glass-overlay"></div></div>
+            </div>
+          </div>
+
+          <div class="insights">
+            <div class="insight i-mood">
+              <span class="ins-dot">💛</span>
+              <p>最近你的心情<br/>整体很稳定，<br/>偶尔会累，<br/>但温暖还在。🌼</p>
+            </div>
+            <div class="insight i-body">
+              <span class="ins-dot">🍃</span>
+              <p>身体似乎有些疲惫，<br/>这周记得<br/>早点休息，<br/>照顾自己呀。🛏️</p>
+            </div>
+            <div class="insight i-tomorrow">
+              <span class="ins-dot">⭐</span>
+              <p>对明天的期待感<br/>一直在，<br/>很珍贵，<br/>继续保持呀。💜</p>
+            </div>
+          </div>
+          <div class="insight-dots"><span class="id on"></span><span class="id"></span><span class="id"></span></div>
+
+          <div class="rest-banner">
+            <div class="rb-moon" aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <defs>
+                  <linearGradient id="restMoon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c6"/><stop offset="1" stop-color="#f1c04a"/></linearGradient>
+                  <mask id="restMoonMask"><rect x="0" y="0" width="64" height="64" fill="#fff"/><circle cx="45" cy="24" r="21" fill="#000"/></mask>
+                </defs>
+                <circle cx="32" cy="32" r="23" fill="url(#restMoon)" mask="url(#restMoonMask)"/>
+              </svg>
+              <span class="rb-cloud"></span>
+              <span class="rb-star rs1"></span><span class="rb-star rs2"></span>
+            </div>
+            <p id="restQuote">你已经认真生活了一整天。</p>
+            <span class="rb-heart">💛</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom tab bar -->
+    <nav class="tabbar">
+      <button class="tab is-active" data-tab="tonight">
+        <span class="tab-ico">🌙</span><span class="tab-text">Tonight</span>
+      </button>
+      <button class="tab" data-tab="trends">
+        <span class="tab-ico">🫙</span><span class="tab-text">Trends</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="./app.js?v=3"></script>
+</body>
+</html>
