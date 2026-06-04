@@ -816,23 +816,15 @@
   function requestMotionPermission() {
     if (typeof DeviceMotionEvent === "undefined") return;
     if (typeof DeviceMotionEvent.requestPermission === "function") {
-      // iOS 13+ — needs user gesture
-      const banner = document.getElementById("motionHint");
-      if (banner) {
-        banner.classList.add("show");
-        banner.addEventListener("click", () => {
-          DeviceMotionEvent.requestPermission()
-            .then((r) => {
-              if (r === "granted") {
-                window.addEventListener("devicemotion", onMotion, { passive: true });
-                hasSensor = true;
-                banner.textContent = "🫙 摇晃手机，珠子会动哦～";
-                setTimeout(() => banner.classList.remove("show"), 2000);
-              }
-            })
-            .catch(() => {});
-        }, { once: true });
-      }
+      // iOS 13+ — request silently
+      DeviceMotionEvent.requestPermission()
+        .then((r) => {
+          if (r === "granted") {
+            window.addEventListener("devicemotion", onMotion, { passive: true });
+            hasSensor = true;
+          }
+        })
+        .catch(() => {});
     } else {
       // Android / desktop — just listen
       window.addEventListener("devicemotion", onMotion, { passive: true });
