@@ -37,15 +37,20 @@ struct TonightView: View {
     }
 
     private var hero: some View {
-        VStack(spacing: 4) {
-            Text("Tonight").font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(Palette.title)
-            Text(dateString).font(.system(size: 13)).foregroundStyle(Palette.txtSoft)
-            Text(heroQuote).font(.system(size: 13.5)).italic(heroQuote.range(of: "[a-zA-Z]", options: .regularExpression) != nil)
-                .foregroundStyle(Palette.txtSoft).multilineTextAlignment(.center)
-                .padding(.top, 6).frame(minHeight: 36)
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Tonight").font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(Palette.title)
+                Text(dateString).font(.system(size: 13)).foregroundStyle(Palette.txtSoft)
+                Text(heroQuote).font(.system(size: 13.5)).italic(heroQuote.range(of: "[a-zA-Z]", options: .regularExpression) != nil)
+                    .foregroundStyle(Palette.txtSoft).multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+            }
+            Spacer(minLength: 4)
+            LampThemeButton().padding(.top, 4)
         }
-        .padding(.bottom, 4)
+        .padding(.top, 6).padding(.bottom, 6)
     }
 
     private func card(_ m: Metric) -> some View {

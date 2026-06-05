@@ -10,15 +10,18 @@ struct TrendsView: View {
         ScrollView {
             VStack(spacing: 0) {
                 // header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("✨ Your gentle patterns")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(Palette.title)
-                    Text("你的状态，正在被温柔看见。")
-                        .font(.system(size: 13)).foregroundStyle(Palette.txtSoft)
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("✨ Your gentle patterns")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(Palette.title)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("你的状态，正在被温柔看见。")
+                            .font(.system(size: 13)).foregroundStyle(Palette.txtSoft)
+                    }
+                    Spacer(minLength: 4)
+                    LampThemeButton().padding(.top, 2)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, 48)
 
                 // range pills
                 HStack(spacing: 6) {

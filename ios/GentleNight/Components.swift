@@ -238,3 +238,27 @@ struct LampToggle: View {
         .contentShape(Rectangle())
     }
 }
+
+// Self-contained lamp button: reads/writes the shared theme and toggles light/dark.
+struct LampThemeButton: View {
+    @AppStorage("gentle-night.theme") private var themeRaw = AppTheme.system.rawValue
+    @Environment(\.colorScheme) private var scheme
+
+    private var resolvedDark: Bool {
+        switch AppTheme(rawValue: themeRaw) ?? .system {
+        case .dark: return true
+        case .light: return false
+        case .system: return scheme == .dark
+        }
+    }
+
+    var body: some View {
+        Button {
+            themeRaw = (resolvedDark ? AppTheme.light : AppTheme.dark).rawValue
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        } label: {
+            LampToggle(on: resolvedDark)
+        }
+        .buttonStyle(.plain)
+    }
+}

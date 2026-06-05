@@ -6,10 +6,9 @@ struct ContentView: View {
     @State private var tab = 0
 
     private var theme: AppTheme { AppTheme(rawValue: themeRaw) ?? .system }
-    @Environment(\.colorScheme) private var systemScheme
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack {
             // background
             backdrop.ignoresSafeArea()
 
@@ -20,23 +19,9 @@ struct ContentView: View {
                     .tabItem { Label("Trends", systemImage: "circle.grid.2x2.fill") }.tag(1)
             }
             .tint(Color(hex: "#e0a92e"))
-
-            // desk-lamp theme toggle (top-right): tap to turn the night light on/off
-            Button {
-                themeRaw = (resolvedDark ? AppTheme.light : AppTheme.dark).rawValue
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            } label: {
-                LampToggle(on: resolvedDark)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 6).padding(.trailing, 12)
         }
         .environmentObject(store)
         .preferredColorScheme(theme.colorScheme)
-    }
-
-    private var resolvedDark: Bool {
-        switch theme { case .dark: true; case .light: false; case .system: systemScheme == .dark }
     }
 
     private var backdrop: some View {
