@@ -38,7 +38,6 @@ struct TonightView: View {
 
     private var hero: some View {
         VStack(spacing: 4) {
-            MoonView(glow: scheme == .dark).frame(width: 42, height: 42)
             Text("Tonight").font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundStyle(Palette.title)
             Text(dateString).font(.system(size: 13)).foregroundStyle(Palette.txtSoft)

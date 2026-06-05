@@ -21,18 +21,15 @@ struct ContentView: View {
             }
             .tint(Color(hex: "#e0a92e"))
 
-            // theme toggle (top-right, like the web)
+            // desk-lamp theme toggle (top-right): tap to turn the night light on/off
             Button {
                 themeRaw = (resolvedDark ? AppTheme.light : AppTheme.dark).rawValue
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             } label: {
-                Image(systemName: resolvedDark ? "sun.max.fill" : "moon.fill")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Palette.txt)
-                    .frame(width: 42, height: 42)
-                    .background(Palette.glass.opacity(0.6), in: Circle())
-                    .overlay(Circle().stroke(Palette.glassBorder, lineWidth: 1))
+                LampToggle(on: resolvedDark)
             }
-            .padding(.top, 8).padding(.trailing, 16)
+            .buttonStyle(.plain)
+            .padding(.top, 6).padding(.trailing, 12)
         }
         .environmentObject(store)
         .preferredColorScheme(theme.colorScheme)

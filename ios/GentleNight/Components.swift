@@ -153,3 +153,30 @@ struct OrbView: View {
         .contentShape(Circle())
     }
 }
+
+// MARK: - Desk lamp theme toggle (lit = dark/night, off = light/day)
+
+struct LampToggle: View {
+    let on: Bool
+    var body: some View {
+        ZStack {
+            if on {
+                Circle()
+                    .fill(RadialGradient(colors: [Color(hex: "#ffe6a0").opacity(0.9), .clear],
+                                         center: .center, startRadius: 0, endRadius: 30))
+                    .frame(width: 64, height: 64)
+                    .offset(x: 2, y: 6)
+            }
+            Image(systemName: "lamp.desk.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(on
+                    ? LinearGradient(colors: [Color(hex: "#ffd96a"), Color(hex: "#e6b144")],
+                                     startPoint: .top, endPoint: .bottom)
+                    : LinearGradient(colors: [Color(hex: "#bcae96"), Color(hex: "#9b8d77")],
+                                     startPoint: .top, endPoint: .bottom))
+                .shadow(color: on ? Color(hex: "#ffd76a").opacity(0.85) : .clear, radius: 8)
+        }
+        .frame(width: 54, height: 54)
+        .contentShape(Rectangle())
+    }
+}
