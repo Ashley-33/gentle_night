@@ -154,29 +154,87 @@ struct OrbView: View {
     }
 }
 
-// MARK: - Desk lamp theme toggle (lit = dark/night, off = light/day)
+// MARK: - Cozy lamp + plant theme toggle (lit = dark/night, off = light/day)
 
 struct LampToggle: View {
     let on: Bool
+
     var body: some View {
-        ZStack {
-            if on {
-                Circle()
-                    .fill(RadialGradient(colors: [Color(hex: "#ffe6a0").opacity(0.9), .clear],
-                                         center: .center, startRadius: 0, endRadius: 30))
-                    .frame(width: 64, height: 64)
-                    .offset(x: 2, y: 6)
+        Canvas { ctx, size in
+            let W = size.width, H = size.height
+            let lampCX = W * 0.74
+            let potCX  = W * 0.34
+
+            // warm glow behind the lamp
+            let glow = Color(hex: "#ffdf95")
+            let halo = Path(ellipseIn: CGRect(x: lampCX - 26, y: 2, width: 52, height: 52))
+            ctx.fill(halo, with: .radialGradient(
+                Gradient(colors: [glow.opacity(on ? 0.9 : 0.35), .clear]),
+                center: CGPoint(x: lampCX, y: 28), startRadius: 0, endRadius: on ? 28 : 18))
+
+            // shelf
+            let shelf = Path(roundedRect: CGRect(x: W * 0.20, y: H - 8, width: W * 0.80, height: 7), cornerRadius: 3)
+            ctx.fill(shelf, with: .linearGradient(
+                Gradient(colors: [Color(hex: "#e8c89b"), Color(hex: "#d0aa76")]),
+                startPoint: CGPoint(x: 0, y: H - 8), endPoint: CGPoint(x: 0, y: H - 1)))
+
+            // ---- dome lamp ----
+            // base
+            let base = Path(roundedRect: CGRect(x: lampCX - 15, y: H - 13, width: 30, height: 8), cornerRadius: 3.5)
+            ctx.fill(base, with: .linearGradient(
+                Gradient(colors: [Color(hex: "#ecbf72"), Color(hex: "#caa052")]),
+                startPoint: CGPoint(x: 0, y: H - 13), endPoint: CGPoint(x: 0, y: H - 5)))
+            // shade (rounded dome)
+            let dw: CGFloat = 26, dh: CGFloat = 28
+            let dx = lampCX - dw / 2, dyB = H - 11
+            var dome = Path()
+            dome.move(to: CGPoint(x: dx, y: dyB))
+            dome.addLine(to: CGPoint(x: dx, y: dyB - dh * 0.5))
+            dome.addQuadCurve(to: CGPoint(x: dx + dw / 2, y: dyB - dh), control: CGPoint(x: dx, y: dyB - dh))
+            dome.addQuadCurve(to: CGPoint(x: dx + dw, y: dyB - dh * 0.5), control: CGPoint(x: dx + dw, y: dyB - dh))
+            dome.addLine(to: CGPoint(x: dx + dw, y: dyB))
+            dome.closeSubpath()
+            ctx.fill(dome, with: .radialGradient(
+                Gradient(colors: [Color(hex: "#fff7df"), Color(hex: on ? "#ffe49a" : "#efddb6")]),
+                center: CGPoint(x: dx + dw / 2, y: dyB - dh * 0.45), startRadius: 1, endRadius: dw))
+            // soft top highlight
+            let hi = Path(ellipseIn: CGRect(x: dx + dw * 0.24, y: dyB - dh * 0.92, width: dw * 0.3, height: dh * 0.3))
+            ctx.fill(hi, with: .color(.white.opacity(0.6)))
+
+            // ---- potted plant ----
+            // pot
+            var pot = Path()
+            pot.move(to: CGPoint(x: potCX - 11, y: H - 21))
+            pot.addLine(to: CGPoint(x: potCX + 11, y: H - 21))
+            pot.addLine(to: CGPoint(x: potCX + 8, y: H - 8))
+            pot.addLine(to: CGPoint(x: potCX - 8, y: H - 8))
+            pot.closeSubpath()
+            ctx.fill(pot, with: .linearGradient(
+                Gradient(colors: [Color(hex: "#f6efe4"), Color(hex: "#e7dcc9")]),
+                startPoint: CGPoint(x: 0, y: H - 21), endPoint: CGPoint(x: 0, y: H - 8)))
+            // pot rim
+            let rim = Path(roundedRect: CGRect(x: potCX - 12.5, y: H - 24, width: 25, height: 5.5), cornerRadius: 2.5)
+            ctx.fill(rim, with: .color(Color(hex: "#efe6d6")))
+            // leaves
+            let greens = [Color(hex: "#92c877"), Color(hex: "#79b35d"), Color(hex: "#a9d98c"), Color(hex: "#6aa84f")]
+            let stem = CGPoint(x: potCX, y: H - 23)
+            let leaves: [(x: CGFloat, y: CGFloat, rot: Double, len: CGFloat, c: Int)] = [
+                (0, -20, 0, 18, 1), (-8, -15, -34, 15, 0), (8, -16, 34, 15, 2),
+                (-12, -8, -62, 12, 3), (12, -9, 62, 12, 1), (-4, -11, -14, 14, 2), (5, -12, 16, 14, 0),
+            ]
+            for lf in leaves {
+                ctx.drawLayer { l in
+                    l.translateBy(x: stem.x + lf.x, y: stem.y + lf.y)
+                    l.rotate(by: .degrees(lf.rot))
+                    var leaf = Path()
+                    leaf.move(to: CGPoint(x: 0, y: lf.len / 2))
+                    leaf.addQuadCurve(to: CGPoint(x: 0, y: -lf.len / 2), control: CGPoint(x: lf.len * 0.38, y: 0))
+                    leaf.addQuadCurve(to: CGPoint(x: 0, y: lf.len / 2), control: CGPoint(x: -lf.len * 0.38, y: 0))
+                    l.fill(leaf, with: .color(greens[lf.c]))
+                }
             }
-            Image(systemName: "lamp.desk.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(on
-                    ? LinearGradient(colors: [Color(hex: "#ffd96a"), Color(hex: "#e6b144")],
-                                     startPoint: .top, endPoint: .bottom)
-                    : LinearGradient(colors: [Color(hex: "#bcae96"), Color(hex: "#9b8d77")],
-                                     startPoint: .top, endPoint: .bottom))
-                .shadow(color: on ? Color(hex: "#ffd76a").opacity(0.85) : .clear, radius: 8)
         }
-        .frame(width: 54, height: 54)
+        .frame(width: 96, height: 60)
         .contentShape(Rectangle())
     }
 }
