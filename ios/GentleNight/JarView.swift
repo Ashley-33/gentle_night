@@ -73,9 +73,9 @@ struct JarView: View {
         let n = used.count
         guard n > 0, w > 1 else { return [] }
         let base = w * 0.16
-        let r = min(max(base * (16.0 / Double(n)).squareRoot(), w * 0.058), w * 0.17)
+        let r = min(max(base * sqrt(CGFloat(16) / CGFloat(n)), w * 0.058), w * 0.17)
         var rng = SeededRNG(seed: UInt64(n &* 9173 &+ metric.rawValue.count))
-        let radii = used.map { _ in r * CGFloat.random(in: 0.86...1.16, using: &rng) }
+        let radii: [CGFloat] = used.map { _ in r * CGFloat.random(in: 0.86...1.16, using: &rng) }
         let centers = packDrop(width: w, height: h, radii: radii, seed: UInt64(n &* 31 &+ 7))
         return zip(zip(centers, radii), used).map { LaidBead(center: $0.0, d: $0.1 * 2, score: $1) }
     }
