@@ -67,10 +67,12 @@ enum BeadTex {
             // base glass: luminous core → saturated mid → colour stays bright to edge (deep only a thin rim)
             let cols = [light.cgColor, mid.cgColor, deep.cgColor] as CFArray
             if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 0.66, 1]) {
-                g.drawRadialGradient(grad,
-                    startCenter: CGPoint(x: S * 0.40, y: S * 0.38), startRadius: S * 0.02,
-                    endCenter: CGPoint(x: S * 0.5, y: S * 0.5), endRadius: S * 0.56,
-                    options: [.drawsAfterEndLocation])
+                // concentric, with a comfortably large startRadius — a tiny startRadius makes
+                // Core Graphics emit garbage pixels at the focal centre (the "transparent dot").
+                let core = CGPoint(x: S * 0.42, y: S * 0.40)
+                g.drawRadialGradient(grad, startCenter: core, startRadius: S * 0.14,
+                                     endCenter: core, endRadius: S * 0.60,
+                                     options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
             }
             // transmitted-light caustic — bright pool low in the glass where light focuses through
             let caustic = [light.withAlphaComponent(0.85).cgColor, light.withAlphaComponent(0).cgColor] as CFArray
@@ -95,24 +97,20 @@ enum BeadTex {
             let g = ctx.cgContext
             g.saveGState()
             g.addEllipse(in: CGRect(x: 4, y: 4, width: S - 8, height: S - 8)); g.clip()
-            // terminator — soft dark only on the far shadow edge (bottom-right), rounds the sphere
+            // terminator — darker far edge for roundness. Concentric centre offset toward the
+            // light so bottom-right reads darker WITHOUT a two-point focal cusp (the grey dot).
             let term = [UIColor.clear.cgColor, UIColor(red: 0.10, green: 0.07, blue: 0.04, alpha: 0.22).cgColor] as CFArray
-            if let tg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: term, locations: [0.62, 1]) {
-                g.drawRadialGradient(tg, startCenter: CGPoint(x: S * 0.38, y: S * 0.36), startRadius: S * 0.10,
-                                     endCenter: CGPoint(x: S * 0.52, y: S * 0.52), endRadius: S * 0.56,
-                                     options: [.drawsAfterEndLocation])
+            if let tg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: term, locations: [0, 1]) {
+                let lc = CGPoint(x: S * 0.40, y: S * 0.40)
+                g.drawRadialGradient(tg, startCenter: lc, startRadius: S * 0.30,
+                                     endCenter: lc, endRadius: S * 0.64,
+                                     options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
             }
-            // soft top sheen — kept well inside the rim so it never lights the edge
-            let sheen = [UIColor.white.withAlphaComponent(0.36).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            // soft bloom AROUND the main glint (concentric) so the highlight reads as one piece
+            let sheen = [UIColor.white.withAlphaComponent(0.28).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
             if let sg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheen, locations: [0, 1]) {
-                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.42, y: S * 0.33), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.43, y: S * 0.35), endRadius: S * 0.28, options: [])
-            }
-            // gentle transmission glow low INSIDE the glass (interior, not at the edge)
-            let glow = [UIColor.white.withAlphaComponent(0.34).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
-            if let gw = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: glow, locations: [0, 1]) {
-                g.drawRadialGradient(gw, startCenter: CGPoint(x: S * 0.47, y: S * 0.64), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.47, y: S * 0.64), endRadius: S * 0.17, options: [])
+                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.34, y: S * 0.25), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.34, y: S * 0.25), endRadius: S * 0.30, options: [])
             }
             // soft inner transmission arc, pulled well inside the edge → no white rim
             let rim = UIBezierPath(arcCenter: CGPoint(x: S / 2, y: S / 2), radius: (S - 24) / 2,
@@ -126,9 +124,6 @@ enum BeadTex {
             // ultra-bright pinpoint core of the glint
             g.setFillColor(UIColor.white.cgColor)
             g.fillEllipse(in: CGRect(x: S * 0.31, y: S * 0.225, width: S * 0.05, height: S * 0.045))
-            // secondary tiny glint
-            g.setFillColor(UIColor.white.withAlphaComponent(0.7).cgColor)
-            g.fillEllipse(in: CGRect(x: S * 0.45, y: S * 0.33, width: S * 0.045, height: S * 0.045))
         }
         glossImgCache = img; return img
     }
