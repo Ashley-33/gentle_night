@@ -127,15 +127,23 @@ struct OrbView: View {
                     .scaleEffect(1.1)
                     .shadow(color: Ramp.accent(metric).opacity(0.45), radius: 6)
             } else {
+                // clear glass bubble — see-through, just a rim + highlight
                 Circle()
-                    .fill(RadialGradient(colors: [.white, Color(hex: "#efe9e0")],
-                                         center: UnitPoint(x: 0.38, y: 0.32), startRadius: 0, endRadius: 26))
+                    .fill(RadialGradient(colors: [.white.opacity(showNumber ? 0.06 : 0.12),
+                                                  .white.opacity(showNumber ? 0.16 : 0.34)],
+                                         center: UnitPoint(x: 0.42, y: 0.4), startRadius: 2, endRadius: 22))
                     .overlay(
-                        Ellipse().fill(.white.opacity(0.8))
-                            .frame(width: 14, height: 11).offset(x: -8, y: -9).blur(radius: 1)
+                        Circle().stroke(LinearGradient(colors: [.white.opacity(showNumber ? 0.55 : 0.95),
+                                                                .white.opacity(0.2)],
+                                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                                        lineWidth: 1)
+                    )
+                    .overlay(
+                        Ellipse().fill(.white.opacity(showNumber ? 0.5 : 0.85))
+                            .frame(width: 11, height: 8).offset(x: -7, y: -8).blur(radius: 0.8)
                     )
                     .frame(width: 40, height: 40)
-                    .shadow(color: .black.opacity(0.12), radius: 3, x: 0, y: 2)
+                    .shadow(color: .black.opacity(showNumber ? 0.18 : 0.06), radius: 2, y: 1)
             }
             if showNumber {
                 Text("\(value)")
@@ -254,5 +262,96 @@ struct LampThemeButton: View {
             LampToggle(on: resolvedDark)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Cute face mascots (sun / leaf / star) drawn with Canvas
+
+struct Mascot: View {
+    let metric: Metric
+    var size: CGFloat = 40
+
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            let cx = w / 2, cy = h / 2
+            switch metric {
+            case .mood:     drawSun(ctx, cx, cy, w)
+            case .body:     drawLeaf(ctx, cx, cy, w)
+            case .tomorrow: drawStar(ctx, cx, cy, w)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private let face = Color(hex: "#6e5638")
+
+    // shared little face: two eyes + smile + rosy cheeks, scaled to radius r about (cx,cy)
+    private func drawFace(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat) {
+        let ew = r * 0.13, eh = r * 0.18, dx = r * 0.34, eyeY = cy - r * 0.04
+        for sx in [cx - dx, cx + dx] {
+            ctx.fill(Path(ellipseIn: CGRect(x: sx - ew / 2, y: eyeY - eh / 2, width: ew, height: eh)), with: .color(face))
+        }
+        var smile = Path()
+        let sy = cy + r * 0.2
+        smile.move(to: CGPoint(x: cx - r * 0.2, y: sy))
+        smile.addQuadCurve(to: CGPoint(x: cx + r * 0.2, y: sy), control: CGPoint(x: cx, y: sy + r * 0.3))
+        ctx.stroke(smile, with: .color(face), style: StrokeStyle(lineWidth: max(1.1, r * 0.07), lineCap: .round))
+        let cheek = Color(hex: "#f2a59a").opacity(0.5), cw = r * 0.17
+        for sx in [cx - r * 0.52, cx + r * 0.52] {
+            ctx.fill(Path(ellipseIn: CGRect(x: sx - cw / 2, y: cy + r * 0.06, width: cw, height: cw * 0.78)), with: .color(cheek))
+        }
+    }
+
+    private func drawSun(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
+        let r = w * 0.29
+        let ray = Color(hex: "#f4c24a")
+        for i in 0..<8 {
+            let ang = Double(i) * .pi / 4
+            let dx = CGFloat(cos(ang)), dy = CGFloat(sin(ang))
+            let px = -dy, py = dx, pw = r * 0.1
+            let r1 = r * 1.16, r2 = r * 1.5
+            var p = Path()
+            p.move(to: CGPoint(x: cx + dx * r1 + px * pw, y: cy + dy * r1 + py * pw))
+            p.addLine(to: CGPoint(x: cx + dx * r2, y: cy + dy * r2))
+            p.addLine(to: CGPoint(x: cx + dx * r1 - px * pw, y: cy + dy * r1 - py * pw))
+            p.closeSubpath()
+            ctx.fill(p, with: .color(ray))
+        }
+        ctx.fill(Path(ellipseIn: CGRect(x: cx - r, y: cy - r, width: 2 * r, height: 2 * r)),
+                 with: .radialGradient(Gradient(colors: [Color(hex: "#ffe99c"), Color(hex: "#f6c84e")]),
+                                       center: CGPoint(x: cx - r * 0.2, y: cy - r * 0.25), startRadius: 0, endRadius: r * 1.3))
+        drawFace(ctx, cx, cy, r)
+    }
+
+    private func drawLeaf(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
+        let r = w * 0.36
+        var leaf = Path()
+        let top = CGPoint(x: cx, y: cy - r), bot = CGPoint(x: cx, y: cy + r)
+        leaf.move(to: top)
+        leaf.addQuadCurve(to: bot, control: CGPoint(x: cx + r * 0.82, y: cy))
+        leaf.addQuadCurve(to: top, control: CGPoint(x: cx - r * 0.82, y: cy))
+        leaf.closeSubpath()
+        ctx.fill(leaf, with: .linearGradient(Gradient(colors: [Color(hex: "#aedb8e"), Color(hex: "#7cb85e")]),
+                                             startPoint: CGPoint(x: cx - r, y: cy - r), endPoint: CGPoint(x: cx + r, y: cy + r)))
+        var vein = Path()
+        vein.move(to: CGPoint(x: cx, y: cy + r * 0.72)); vein.addLine(to: CGPoint(x: cx, y: cy - r * 0.6))
+        ctx.stroke(vein, with: .color(Color(hex: "#6aa84f").opacity(0.55)), lineWidth: max(0.8, r * 0.05))
+        drawFace(ctx, cx, cy + r * 0.05, r * 0.82)
+    }
+
+    private func drawStar(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
+        let R = w * 0.42, ri = R * 0.45
+        var star = Path()
+        for i in 0..<10 {
+            let ang = -Double.pi / 2 + Double(i) * .pi / 5
+            let rad = (i % 2 == 0) ? R : ri
+            let p = CGPoint(x: cx + CGFloat(cos(ang)) * rad, y: cy + CGFloat(sin(ang)) * rad)
+            if i == 0 { star.move(to: p) } else { star.addLine(to: p) }
+        }
+        star.closeSubpath()
+        ctx.fill(star, with: .radialGradient(Gradient(colors: [Color(hex: "#ffe49a"), Color(hex: "#f3c14e")]),
+                                             center: CGPoint(x: cx - R * 0.15, y: cy - R * 0.2), startRadius: 0, endRadius: R * 1.1))
+        drawFace(ctx, cx, cy + R * 0.06, R * 0.62)
     }
 }

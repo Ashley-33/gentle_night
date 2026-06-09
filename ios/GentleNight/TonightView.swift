@@ -56,9 +56,8 @@ struct TonightView: View {
     private func card(_ m: Metric) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 11) {
-                Image(systemName: m.symbol)
-                    .font(.system(size: 22)).foregroundStyle(Ramp.accent(m))
-                    .frame(width: 38, height: 38)
+                Mascot(metric: m, size: 42)
+                    .frame(width: 42, height: 42)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(m.titleEN).font(.system(size: 19, weight: .bold, design: .rounded))
                         .foregroundStyle(Ramp.accent(m))

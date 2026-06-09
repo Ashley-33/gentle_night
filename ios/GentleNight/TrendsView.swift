@@ -50,7 +50,7 @@ struct TrendsView: View {
                 HStack(spacing: 12) {
                     ForEach(Metric.allCases) { m in
                         HStack(spacing: 4) {
-                            Image(systemName: m.symbol).font(.system(size: 13)).foregroundStyle(Ramp.accent(m))
+                            Mascot(metric: m, size: 20)
                             Text(m.titleEN).font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundStyle(Ramp.accent(m))
                         }
