@@ -19,52 +19,153 @@ final class MotionManager {
     }
 }
 
-// MARK: - Bead textures (cached per metric+score)
+// MARK: - Bead textures (glass-marble look, 3 layers)
+//
+// A real glass marble is read through layering, not one flat sprite:
+//   • body  — the coloured glass, rotates with physics (refraction "moves" as it rolls)
+//   • gloss — all light/view-dependent shading (specular, rim, terminator); stays
+//             SCREEN-FIXED so reflections don't spin with the ball (glass vs plastic)
+//   • shadow — soft contact shadow on the ground/cluster, gives weight
 
 enum BeadTex {
-    nonisolated(unsafe) static var cache: [String: SKTexture] = [:]
+    nonisolated(unsafe) private static var bodyCache: [String: SKTexture] = [:]
+    nonisolated(unsafe) private static var glossTex: SKTexture?
+    nonisolated(unsafe) private static var shadowTex: SKTexture?
+    nonisolated(unsafe) private static var sparkleTex: SKTexture?
 
-    static func texture(_ metric: Metric, _ score: Int) -> SKTexture {
+    // saturate + lift so muted/grey scores read as luminous glass, not mud
+    private static func punch(_ ui: UIColor, sat: CGFloat, bri: CGFloat) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard ui.getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return ui }
+        return UIColor(hue: h, saturation: min(1, s * sat), brightness: min(1, b * bri), alpha: a)
+    }
+
+    /// Coloured glass body (rotates with physics).
+    static func body(_ metric: Metric, _ score: Int) -> SKTexture {
         let key = "\(metric.rawValue)-\(score)"
-        if let t = cache[key] { return t }
+        if let t = bodyCache[key] { return t }
         let c = Ramp.colors(metric, score)
-        let S: CGFloat = 88
+        let light = punch(UIColor(c.light), sat: 1.10, bri: 1.12)
+        let mid   = punch(UIColor(c.mid),   sat: 1.24, bri: 1.10)
+        let deep  = punch(UIColor(c.deep),  sat: 1.18, bri: 1.02)
+        let S: CGFloat = 104
         let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
             let g = ctx.cgContext
-            g.addEllipse(in: CGRect(x: 3, y: 3, width: S - 6, height: S - 6)); g.clip()
-            let cols = [UIColor(c.light).cgColor, UIColor(c.mid).cgColor, UIColor(c.deep).cgColor] as CFArray
-            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 0.72, 1]) {
+            let circle = CGRect(x: 4, y: 4, width: S - 8, height: S - 8)
+            g.saveGState()
+            g.addEllipse(in: circle); g.clip()
+            // base glass: luminous core → saturated mid → colour stays bright to edge (deep only a thin rim)
+            let cols = [light.cgColor, mid.cgColor, deep.cgColor] as CFArray
+            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 0.66, 1]) {
                 g.drawRadialGradient(grad,
-                    startCenter: CGPoint(x: S * 0.38, y: S * 0.36), startRadius: 0,
-                    endCenter: CGPoint(x: S * 0.5, y: S * 0.5), endRadius: S * 0.62, options: [])
+                    startCenter: CGPoint(x: S * 0.40, y: S * 0.38), startRadius: S * 0.02,
+                    endCenter: CGPoint(x: S * 0.5, y: S * 0.5), endRadius: S * 0.56,
+                    options: [.drawsAfterEndLocation])
             }
-            // glossy highlight
-            g.setFillColor(UIColor.white.withAlphaComponent(0.85).cgColor)
-            g.fillEllipse(in: CGRect(x: S * 0.24, y: S * 0.18, width: S * 0.22, height: S * 0.17))
-            // tiny sparkle for the best score
-            if score >= 5 {
-                g.setFillColor(UIColor(white: 1, alpha: 0.95).cgColor)
-                let cx = S * 0.66, cy = S * 0.34, a: CGFloat = 7
-                var star = [CGPoint]()
-                for i in 0..<8 {
-                    let ang = CGFloat(i) * .pi / 4
-                    let rad = (i % 2 == 0) ? a : a * 0.4
-                    star.append(CGPoint(x: cx + cos(ang) * rad, y: cy + sin(ang) * rad))
-                }
-                g.beginPath(); g.addLines(between: star); g.closePath(); g.fillPath()
+            // transmitted-light caustic — bright pool low in the glass where light focuses through
+            let caustic = [light.withAlphaComponent(0.85).cgColor, light.withAlphaComponent(0).cgColor] as CFArray
+            if let cg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: caustic, locations: [0, 1]) {
+                g.drawRadialGradient(cg, startCenter: CGPoint(x: S * 0.46, y: S * 0.66), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.46, y: S * 0.66), endRadius: S * 0.30, options: [])
+            }
+            g.restoreGState()
+            // thin rim — defines the edge on the pale glass jar
+            g.setStrokeColor(deep.withAlphaComponent(0.32).cgColor)
+            g.setLineWidth(1.0)
+            g.strokeEllipse(in: circle.insetBy(dx: 0.6, dy: 0.6))
+        }
+        let t = SKTexture(image: img); bodyCache[key] = t; return t
+    }
+
+    /// Light/view shading, colour-independent (one shared texture, kept screen-fixed).
+    static func gloss() -> SKTexture {
+        if let t = glossTex { return t }
+        let S: CGFloat = 104
+        let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
+            let g = ctx.cgContext
+            g.saveGState()
+            g.addEllipse(in: CGRect(x: 4, y: 4, width: S - 8, height: S - 8)); g.clip()
+            // terminator — soft dark only on the far shadow edge (bottom-right), rounds the sphere
+            let term = [UIColor.clear.cgColor, UIColor(red: 0.10, green: 0.07, blue: 0.04, alpha: 0.22).cgColor] as CFArray
+            if let tg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: term, locations: [0.62, 1]) {
+                g.drawRadialGradient(tg, startCenter: CGPoint(x: S * 0.38, y: S * 0.36), startRadius: S * 0.10,
+                                     endCenter: CGPoint(x: S * 0.52, y: S * 0.52), endRadius: S * 0.56,
+                                     options: [.drawsAfterEndLocation])
+            }
+            // soft top sheen
+            let sheen = [UIColor.white.withAlphaComponent(0.40).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            if let sg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheen, locations: [0, 1]) {
+                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.40, y: S * 0.30), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.42, y: S * 0.34), endRadius: S * 0.36, options: [])
+            }
+            // bright transmission caustic at the bottom — the glass "lets light through"
+            let glow = [UIColor.white.withAlphaComponent(0.5).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            if let gw = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: glow, locations: [0, 1]) {
+                g.drawRadialGradient(gw, startCenter: CGPoint(x: S * 0.46, y: S * 0.70), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.46, y: S * 0.70), endRadius: S * 0.22, options: [])
+            }
+            g.restoreGState()
+            // Fresnel rim — bright transmission edge wrapping the bottom arc
+            let rim = UIBezierPath(arcCenter: CGPoint(x: S / 2, y: S / 2), radius: (S - 10) / 2,
+                                   startAngle: .pi * 0.12, endAngle: .pi * 0.88, clockwise: true)
+            rim.lineWidth = 2.6; rim.lineCapStyle = .round
+            UIColor.white.withAlphaComponent(0.8).setStroke(); rim.stroke()
+            // sharp specular hot-spot (top-left), the signature glass glint
+            g.setFillColor(UIColor.white.withAlphaComponent(0.98).cgColor)
+            g.fillEllipse(in: CGRect(x: S * 0.28, y: S * 0.20, width: S * 0.13, height: S * 0.105))
+            // ultra-bright pinpoint core of the glint
+            g.setFillColor(UIColor.white.cgColor)
+            g.fillEllipse(in: CGRect(x: S * 0.31, y: S * 0.225, width: S * 0.05, height: S * 0.045))
+            // secondary tiny glint
+            g.setFillColor(UIColor.white.withAlphaComponent(0.7).cgColor)
+            g.fillEllipse(in: CGRect(x: S * 0.45, y: S * 0.33, width: S * 0.045, height: S * 0.045))
+        }
+        let t = SKTexture(image: img); glossTex = t; return t
+    }
+
+    /// Soft contact shadow (flattened, sits under a bead).
+    static func shadow() -> SKTexture {
+        if let t = shadowTex { return t }
+        let S: CGFloat = 100
+        let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
+            let g = ctx.cgContext
+            let cols = [UIColor(red: 0.20, green: 0.14, blue: 0.05, alpha: 0.40).cgColor,
+                        UIColor(red: 0.20, green: 0.14, blue: 0.05, alpha: 0).cgColor] as CFArray
+            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 1]) {
+                g.drawRadialGradient(grad, startCenter: CGPoint(x: S / 2, y: S / 2), startRadius: 0,
+                                     endCenter: CGPoint(x: S / 2, y: S / 2), endRadius: S / 2, options: [])
             }
         }
-        let t = SKTexture(image: img)
-        cache[key] = t
-        return t
+        let t = SKTexture(image: img); shadowTex = t; return t
+    }
+
+    /// Twinkle for the best score.
+    static func sparkle() -> SKTexture {
+        if let t = sparkleTex { return t }
+        let S: CGFloat = 44
+        let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
+            let g = ctx.cgContext
+            g.setFillColor(UIColor.white.cgColor)
+            let cx = S / 2, cy = S / 2, a: CGFloat = S * 0.46, b: CGFloat = S * 0.14
+            var pts = [CGPoint]()
+            for i in 0..<8 {
+                let ang = CGFloat(i) * .pi / 4
+                let r = (i % 2 == 0) ? a : b
+                pts.append(CGPoint(x: cx + cos(ang) * r, y: cy + sin(ang) * r))
+            }
+            g.beginPath(); g.addLines(between: pts); g.closePath(); g.fillPath()
+        }
+        let t = SKTexture(image: img); sparkleTex = t; return t
     }
 }
 
-// MARK: - Physics scene (gravity, collisions, rolling beads in a jar boundary)
+// MARK: - Physics scene (gravity, collisions, rolling glass marbles in a jar)
 
 final class JarScene: SKScene {
-    struct Spec { let r: CGFloat; let tex: SKTexture }
+    struct Spec { let r: CGFloat; let metric: Metric; let score: Int }
     private var configured = false
+    // bead = rotating body + screen-fixed gloss child + tracked contact shadow
+    private var beads: [(body: SKSpriteNode, gloss: SKSpriteNode, shadow: SKSpriteNode, r: CGFloat)] = []
 
     func configure(size: CGSize, specs: [Spec]) {
         guard size.width > 1, size.height > 1 else { return }
@@ -81,21 +182,38 @@ final class JarScene: SKScene {
         wall.friction = 0.5; wall.restitution = 0.08
         physicsBody = wall
         // beads
-        removeAllChildren()
+        removeAllChildren(); beads.removeAll()
         var rng = SystemRandomNumberGenerator()
         for (i, s) in specs.enumerated() {
-            let node = SKSpriteNode(texture: s.tex)
-            node.size = CGSize(width: s.r * 2, height: s.r * 2)
+            // contact shadow (drawn under everything)
+            let shadow = SKSpriteNode(texture: BeadTex.shadow())
+            shadow.size = CGSize(width: s.r * 2.15, height: s.r * 1.25)
+            shadow.zPosition = 0
+            addChild(shadow)
+            // glass body — carries the physics, rotates
+            let body = SKSpriteNode(texture: BeadTex.body(s.metric, s.score))
+            body.size = CGSize(width: s.r * 2, height: s.r * 2)
+            body.zPosition = 1
             let x = CGFloat.random(in: s.r...max(s.r, size.width - s.r), using: &rng)
-            node.position = CGPoint(x: x, y: size.height - s.r - CGFloat(i) * 1.5)   // pour from the top
-            let body = SKPhysicsBody(circleOfRadius: s.r * 0.95)
-            body.restitution = 0.12
-            body.friction = 0.5
-            body.linearDamping = 0.55
-            body.angularDamping = 0.6
-            body.allowsRotation = true
-            node.physicsBody = body
-            addChild(node)
+            body.position = CGPoint(x: x, y: size.height - s.r - CGFloat(i) * 1.5)   // pour from the top
+            let pb = SKPhysicsBody(circleOfRadius: s.r * 0.95)
+            pb.restitution = 0.14; pb.friction = 0.5; pb.linearDamping = 0.5
+            pb.angularDamping = 0.55; pb.allowsRotation = true
+            body.physicsBody = pb
+            addChild(body)
+            // gloss — child of body so it follows position; counter-rotated each frame to stay screen-fixed
+            let gloss = SKSpriteNode(texture: BeadTex.gloss())
+            gloss.size = body.size
+            gloss.zPosition = 1
+            body.addChild(gloss)
+            if s.score >= 5 {
+                let sp = SKSpriteNode(texture: BeadTex.sparkle())
+                sp.size = CGSize(width: s.r * 0.7, height: s.r * 0.7)
+                sp.position = CGPoint(x: s.r * 0.36, y: s.r * 0.34)
+                sp.blendMode = .add
+                gloss.addChild(sp)   // rides the screen-fixed gloss
+            }
+            beads.append((body, gloss, shadow, s.r))
         }
         configured = true
     }
@@ -104,6 +222,11 @@ final class JarScene: SKScene {
         guard configured else { return }
         let g = MotionManager.shared.gravity
         physicsWorld.gravity = CGVector(dx: g.dx * 9, dy: g.dy * 9)
+        // keep gloss reflections pointing at the (screen-fixed) light, drop shadows under beads
+        for b in beads {
+            b.gloss.zRotation = -b.body.zRotation
+            b.shadow.position = CGPoint(x: b.body.position.x, y: b.body.position.y - b.r * 0.6)
+        }
     }
 }
 
@@ -134,7 +257,7 @@ struct PhysicsBeads: View {
         let base = size.width * 0.16
         let r = min(max(base * sqrt(CGFloat(16) / CGFloat(n)), size.width * 0.058), size.width * 0.17)
         return used.map { score in
-            JarScene.Spec(r: r * CGFloat.random(in: 0.9...1.12), tex: BeadTex.texture(metric, score))
+            JarScene.Spec(r: r * CGFloat.random(in: 0.9...1.12), metric: metric, score: score)
         }
     }
 }
