@@ -28,7 +28,9 @@ final class MotionManager {
 //   • shadow — soft contact shadow on the ground/cluster, gives weight
 
 enum BeadTex {
-    nonisolated(unsafe) private static var bodyCache: [String: SKTexture] = [:]
+    nonisolated(unsafe) private static var bodyImgCache: [String: UIImage] = [:]
+    nonisolated(unsafe) private static var glossImgCache: UIImage?
+    nonisolated(unsafe) private static var bodyTexCache: [String: SKTexture] = [:]
     nonisolated(unsafe) private static var glossTex: SKTexture?
     nonisolated(unsafe) private static var shadowTex: SKTexture?
     nonisolated(unsafe) private static var sparkleTex: SKTexture?
@@ -40,11 +42,19 @@ enum BeadTex {
         return UIColor(hue: h, saturation: min(1, s * sat), brightness: min(1, b * bri), alpha: a)
     }
 
-    /// Coloured glass body (rotates with physics).
-    static func body(_ metric: Metric, _ score: Int) -> SKTexture {
-        let key = "\(metric.rawValue)-\(score)"
-        if let t = bodyCache[key] { return t }
-        let c = Ramp.colors(metric, score)
+    private static func colorKey(_ c: BeadColors) -> String {
+        func k(_ col: Color) -> String {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            UIColor(col).getRed(&r, green: &g, blue: &b, alpha: &a)
+            return "\(Int(r * 255)).\(Int(g * 255)).\(Int(b * 255))"
+        }
+        return k(c.light) + "-" + k(c.mid) + "-" + k(c.deep)
+    }
+
+    /// Coloured glass body as a UIImage — shared by SpriteKit (Trends) and SwiftUI (Tonight).
+    static func bodyImage(_ c: BeadColors) -> UIImage {
+        let key = colorKey(c)
+        if let i = bodyImgCache[key] { return i }
         let light = punch(UIColor(c.light), sat: 1.10, bri: 1.12)
         let mid   = punch(UIColor(c.mid),   sat: 1.24, bri: 1.10)
         let deep  = punch(UIColor(c.deep),  sat: 1.18, bri: 1.02)
@@ -74,12 +84,12 @@ enum BeadTex {
             g.setLineWidth(1.0)
             g.strokeEllipse(in: circle.insetBy(dx: 0.6, dy: 0.6))
         }
-        let t = SKTexture(image: img); bodyCache[key] = t; return t
+        bodyImgCache[key] = img; return img
     }
 
-    /// Light/view shading, colour-independent (one shared texture, kept screen-fixed).
-    static func gloss() -> SKTexture {
-        if let t = glossTex { return t }
+    /// Light/view shading as a UIImage, colour-independent (one shared image).
+    static func glossImage() -> UIImage {
+        if let i = glossImgCache { return i }
         let S: CGFloat = 104
         let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
             let g = ctx.cgContext
@@ -120,7 +130,21 @@ enum BeadTex {
             g.setFillColor(UIColor.white.withAlphaComponent(0.7).cgColor)
             g.fillEllipse(in: CGRect(x: S * 0.45, y: S * 0.33, width: S * 0.045, height: S * 0.045))
         }
-        let t = SKTexture(image: img); glossTex = t; return t
+        glossImgCache = img; return img
+    }
+
+    /// Coloured glass body (SpriteKit texture for the physics scene).
+    static func body(_ metric: Metric, _ score: Int) -> SKTexture {
+        let key = "\(metric.rawValue)-\(score)"
+        if let t = bodyTexCache[key] { return t }
+        let t = SKTexture(image: bodyImage(Ramp.colors(metric, score)))
+        bodyTexCache[key] = t; return t
+    }
+
+    /// Light/view shading (SpriteKit texture, kept screen-fixed).
+    static func gloss() -> SKTexture {
+        if let t = glossTex { return t }
+        let t = SKTexture(image: glossImage()); glossTex = t; return t
     }
 
     /// Soft contact shadow (flattened, sits under a bead).

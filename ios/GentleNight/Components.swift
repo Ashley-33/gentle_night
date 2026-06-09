@@ -100,21 +100,15 @@ struct BeadView: View {
     let size: CGFloat
     var sparkle = false
 
+    // Same glass-marble layers as the Trends jar: coloured body + fixed gloss.
     var body: some View {
-        Circle()
-            .fill(RadialGradient(colors: [colors.light, colors.mid, colors.deep],
-                                 center: UnitPoint(x: 0.4, y: 0.32),
-                                 startRadius: 0, endRadius: size * 0.62))
-            .overlay(
-                Ellipse()
-                    .fill(RadialGradient(colors: [.white.opacity(0.9), .clear],
-                                         center: .center, startRadius: 0, endRadius: size * 0.2))
-                    .frame(width: size * 0.42, height: size * 0.34)
-                    .offset(x: -size * 0.14, y: -size * 0.2)
-            )
-            .frame(width: size, height: size)
-            .shadow(color: Color(hex: "#5a4628").opacity(0.22), radius: size * 0.07, x: 0, y: size * 0.05)
-            .overlay { if sparkle { GlintCluster(size: size) } }
+        ZStack {
+            Image(uiImage: BeadTex.bodyImage(colors)).resizable().interpolation(.high)
+            Image(uiImage: BeadTex.glossImage()).resizable().interpolation(.high)
+            if sparkle { GlintCluster(size: size) }
+        }
+        .frame(width: size, height: size)
+        .shadow(color: Color(hex: "#5a4628").opacity(0.22), radius: size * 0.07, x: 0, y: size * 0.05)
     }
 }
 
