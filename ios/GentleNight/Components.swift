@@ -66,11 +66,12 @@ struct MoonView: View {
 struct Twinkle: View {
     let size: CGFloat
     let delay: Double
+    var tint: Color = .white
     @State private var on = false
     var body: some View {
         Image(systemName: "sparkle")
             .font(.system(size: size))
-            .foregroundStyle(.white)
+            .foregroundStyle(tint)
             .shadow(color: Color(hex: "#ffe9a0").opacity(0.95), radius: 3)
             .opacity(on ? 1 : 0)
             .scaleEffect(on ? 1 : 0.35)
@@ -353,5 +354,82 @@ struct Mascot: View {
         ctx.fill(star, with: .radialGradient(Gradient(colors: [Color(hex: "#ffe49a"), Color(hex: "#f3c14e")]),
                                              center: CGPoint(x: cx - R * 0.15, y: cy - R * 0.2), startRadius: 0, endRadius: R * 1.1))
         drawFace(ctx, cx, cy + R * 0.06, R * 0.62)
+    }
+}
+
+// MARK: - Ambient backdrop (soft clouds / cozy glow + scattered sparkles)
+
+struct AmbientBackdrop: View {
+    @Environment(\.colorScheme) private var scheme
+
+    // sparkles in the upper area: (xFrac, yFrac, size, delay)
+    private let spots: [(CGFloat, CGFloat, CGFloat, Double)] = [
+        (0.09, 0.13, 9, 0.0), (0.93, 0.11, 7, 0.8), (0.31, 0.05, 6, 1.4),
+        (0.80, 0.17, 8, 0.4), (0.52, 0.085, 5, 1.1), (0.15, 0.24, 6, 1.7),
+        (0.88, 0.27, 5, 0.6)
+    ]
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            ZStack {
+                Palette.bg
+                RadialGradient(colors: [Palette.bg2.opacity(0.9), .clear],
+                               center: .topLeading, startRadius: 0, endRadius: 500)
+                if scheme == .dark {
+                    // cozy warm lamp glow (top-left) + cool moon glow (top-right)
+                    RadialGradient(colors: [Color(hex: "#ffcf7a").opacity(0.22), .clear],
+                                   center: .topLeading, startRadius: 0, endRadius: 300)
+                    RadialGradient(colors: [Color(hex: "#8e98dd").opacity(0.15), .clear],
+                                   center: UnitPoint(x: 0.96, y: 0.05), startRadius: 0, endRadius: 250)
+                } else {
+                    // soft clouds drifting behind the header
+                    Ellipse().fill(Color(hex: "#fce7ea").opacity(0.55))
+                        .frame(width: w * 0.55, height: h * 0.13).blur(radius: 28)
+                        .position(x: w * 0.24, y: h * 0.10)
+                    Ellipse().fill(Color(hex: "#e9eefb").opacity(0.6))
+                        .frame(width: w * 0.45, height: h * 0.11).blur(radius: 26)
+                        .position(x: w * 0.84, y: h * 0.08)
+                }
+                ForEach(Array(spots.enumerated()), id: \.offset) { _, s in
+                    Twinkle(size: s.2, delay: s.3,
+                            tint: scheme == .dark ? Color(hex: "#ffe6ad") : Color(hex: "#e9b94e"))
+                        .position(x: w * s.0, y: h * s.1)
+                }
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - Warm fairy-light strand (sits at the jar base)
+
+struct FairyLights: View {
+    var count = 15
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            // faint string
+            var wire = Path()
+            for i in 0...count {
+                let x = w * CGFloat(i) / CGFloat(count)
+                let y = h * 0.45 + sin(CGFloat(i) * 0.8) * h * 0.18
+                if i == 0 { wire.move(to: CGPoint(x: x, y: y)) } else { wire.addLine(to: CGPoint(x: x, y: y)) }
+            }
+            ctx.stroke(wire, with: .color(Color(hex: "#caa86a").opacity(0.35)), lineWidth: 0.8)
+            // bulbs with glow
+            for i in 0..<count {
+                let x = w * (CGFloat(i) + 0.5) / CGFloat(count)
+                let y = h * 0.45 + sin((CGFloat(i) + 0.5) * 0.8) * h * 0.18
+                let p = CGPoint(x: x, y: y)
+                let glow = Path(ellipseIn: CGRect(x: x - 5, y: y - 5, width: 10, height: 10))
+                ctx.fill(glow, with: .radialGradient(Gradient(colors: [Color(hex: "#ffd98a").opacity(0.9), .clear]),
+                                                     center: p, startRadius: 0, endRadius: 6))
+                ctx.fill(Path(ellipseIn: CGRect(x: x - 1.6, y: y - 1.6, width: 3.2, height: 3.2)),
+                         with: .color(Color(hex: "#fff1c2")))
+            }
+        }
+        .frame(height: 16)
+        .allowsHitTesting(false)
     }
 }

@@ -67,6 +67,7 @@ struct TrendsView: View {
                     }
                 }
                 .padding(.top, 8)
+                FairyLights().padding(.top, -2)   // warm lights at the jar base
 
                 // insights
                 HStack(alignment: .top, spacing: 9) {
