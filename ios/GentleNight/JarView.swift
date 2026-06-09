@@ -102,24 +102,24 @@ enum BeadTex {
                                      endCenter: CGPoint(x: S * 0.52, y: S * 0.52), endRadius: S * 0.56,
                                      options: [.drawsAfterEndLocation])
             }
-            // soft top sheen
-            let sheen = [UIColor.white.withAlphaComponent(0.40).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            // soft top sheen — kept well inside the rim so it never lights the edge
+            let sheen = [UIColor.white.withAlphaComponent(0.36).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
             if let sg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheen, locations: [0, 1]) {
-                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.40, y: S * 0.30), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.42, y: S * 0.34), endRadius: S * 0.36, options: [])
+                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.42, y: S * 0.33), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.43, y: S * 0.35), endRadius: S * 0.28, options: [])
             }
-            // bright transmission caustic at the bottom — the glass "lets light through"
-            let glow = [UIColor.white.withAlphaComponent(0.5).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            // gentle transmission glow low INSIDE the glass (interior, not at the edge)
+            let glow = [UIColor.white.withAlphaComponent(0.34).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
             if let gw = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: glow, locations: [0, 1]) {
-                g.drawRadialGradient(gw, startCenter: CGPoint(x: S * 0.46, y: S * 0.70), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.46, y: S * 0.70), endRadius: S * 0.22, options: [])
+                g.drawRadialGradient(gw, startCenter: CGPoint(x: S * 0.47, y: S * 0.64), startRadius: 0,
+                                     endCenter: CGPoint(x: S * 0.47, y: S * 0.64), endRadius: S * 0.17, options: [])
             }
+            // soft inner transmission arc, pulled well inside the edge → no white rim
+            let rim = UIBezierPath(arcCenter: CGPoint(x: S / 2, y: S / 2), radius: (S - 24) / 2,
+                                   startAngle: .pi * 0.22, endAngle: .pi * 0.78, clockwise: true)
+            rim.lineWidth = 3.0; rim.lineCapStyle = .round
+            UIColor.white.withAlphaComponent(0.30).setStroke(); rim.stroke()
             g.restoreGState()
-            // Fresnel rim — bright transmission edge wrapping the bottom arc
-            let rim = UIBezierPath(arcCenter: CGPoint(x: S / 2, y: S / 2), radius: (S - 10) / 2,
-                                   startAngle: .pi * 0.12, endAngle: .pi * 0.88, clockwise: true)
-            rim.lineWidth = 2.6; rim.lineCapStyle = .round
-            UIColor.white.withAlphaComponent(0.8).setStroke(); rim.stroke()
             // sharp specular hot-spot (top-left), the signature glass glint
             g.setFillColor(UIColor.white.withAlphaComponent(0.98).cgColor)
             g.fillEllipse(in: CGRect(x: S * 0.28, y: S * 0.20, width: S * 0.13, height: S * 0.105))

@@ -124,8 +124,8 @@ struct OrbView: View {
         ZStack {
             if selected {
                 BeadView(colors: Ramp.colors(metric, value), size: 44, sparkle: value >= 5)
-                    .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 1.5).frame(width: 44, height: 44))
-                    .scaleEffect(1.08)
+                    .scaleEffect(1.1)
+                    .shadow(color: Ramp.accent(metric).opacity(0.45), radius: 6)
             } else {
                 Circle()
                     .fill(RadialGradient(colors: [.white, Color(hex: "#efe9e0")],
