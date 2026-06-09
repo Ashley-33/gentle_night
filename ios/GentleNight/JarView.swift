@@ -286,70 +286,106 @@ struct PhysicsBeads: View {
     }
 }
 
-// MARK: - Jar (realistic glass + physics beads + cork)
+// MARK: - Reusable clear-glass jar chrome (shared by Trends jar + drop animation)
+
+enum JarGlass {
+    static func shape(top: CGFloat = 12, bottom: CGFloat = 34) -> UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: top, bottomLeadingRadius: bottom,
+                               bottomTrailingRadius: bottom, topTrailingRadius: top)
+    }
+    static func edge(_ s: ColorScheme) -> Color {
+        s == .dark ? Color(hex: "#9aa6d0") : Color(hex: "#aebab4")
+    }
+    static func backWall(_ s: ColorScheme) -> LinearGradient {
+        let e = edge(s)
+        return LinearGradient(stops: [
+            .init(color: e.opacity(s == .dark ? 0.34 : 0.42), location: 0),
+            .init(color: e.opacity(0.10), location: 0.12),
+            .init(color: .clear, location: 0.32),
+            .init(color: .clear, location: 0.68),
+            .init(color: e.opacity(0.12), location: 0.88),
+            .init(color: e.opacity(s == .dark ? 0.36 : 0.48), location: 1)],
+            startPoint: .leading, endPoint: .trailing)
+    }
+    static func outline(_ s: ColorScheme) -> LinearGradient {
+        s == .dark
+        ? LinearGradient(colors: [Color(hex: "#cfd8f5").opacity(0.8), Color(hex: "#8e9bcb").opacity(0.5)],
+                         startPoint: .topLeading, endPoint: .bottomTrailing)
+        : LinearGradient(colors: [Color(hex: "#f3f5f2"), Color(hex: "#a7b1ac")],
+                         startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+    static func rim(_ s: ColorScheme) -> Color {
+        s == .dark ? Color(hex: "#c9d2f0").opacity(0.7) : Color(hex: "#cdd3ce")
+    }
+}
+
+/// The glass reflections, mouth rim and outline drawn in FRONT of the beads.
+struct JarFrontGlass: View {
+    var top: CGFloat = 12
+    var bottom: CGFloat = 34
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let shape = JarGlass.shape(top: top, bottom: bottom)
+            ZStack {
+                // inner reflections — kept inside the jar
+                ZStack {
+                    Ellipse()   // light pooling off the glass floor
+                        .fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.16 : 0.5), .clear],
+                                             startPoint: .bottom, endPoint: .top))
+                        .frame(width: w * 0.8, height: h * 0.13)
+                        .position(x: w * 0.52, y: h * 0.95).blur(radius: 3)
+                    RoundedRectangle(cornerRadius: w * 0.05)   // primary specular streak (left)
+                        .fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.55 : 0.95),
+                                                      .white.opacity(scheme == .dark ? 0.06 : 0.18)],
+                                             startPoint: .top, endPoint: .bottom))
+                        .frame(width: w * 0.07, height: h * 0.6).blur(radius: 1.3)
+                        .position(x: w * 0.23, y: h * 0.42)
+                    Capsule().fill(.white.opacity(scheme == .dark ? 0.32 : 0.62))   // secondary thin streak
+                        .frame(width: w * 0.02, height: h * 0.52).blur(radius: 0.8)
+                        .position(x: w * 0.33, y: h * 0.44)
+                    Capsule().fill(.white.opacity(scheme == .dark ? 0.28 : 0.5))    // far wall bright edge
+                        .frame(width: w * 0.018, height: h * 0.56).blur(radius: 1.0)
+                        .position(x: w * 0.865, y: h * 0.46)
+                }
+                .clipShape(shape)
+                // mouth rim — brighter where light hits (top-left)
+                Ellipse()
+                    .stroke(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.55 : 0.9),
+                                                    JarGlass.rim(scheme).opacity(0.5)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 1.7)
+                    .frame(width: w * 0.72, height: h * 0.052).position(x: w * 0.5, y: h * 0.035)
+                Ellipse()   // soft inner-mouth shadow under the rim
+                    .fill(LinearGradient(colors: [JarGlass.edge(scheme).opacity(0.20), .clear],
+                                         startPoint: .top, endPoint: .bottom))
+                    .frame(width: w * 0.64, height: h * 0.06).position(x: w * 0.5, y: h * 0.06)
+                shape.stroke(JarGlass.outline(scheme), lineWidth: 1.8)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+// MARK: - Jar (clear glass + physics beads + cork)
 
 struct JarView: View {
     let metric: Metric
     let scores: [Int]
     @Environment(\.colorScheme) private var scheme
 
-    private var jarShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 34,
-                               bottomTrailingRadius: 34, topTrailingRadius: 12)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             cork
-            GeometryReader { geo in
-                let w = geo.size.width, h = geo.size.height
-                ZStack {
-                    // back wall — near-clear glass, faint cool tint only at the edges (thickness)
-                    jarShape.fill(backWall)
-                    PhysicsBeads(metric: metric, scores: scores, size: geo.size)  // tumbling beads
-                        .clipShape(jarShape)
-
-                    // inner glass reflections — kept inside the jar
-                    ZStack {
-                        // light pooling off the glass floor
-                        Ellipse()
-                            .fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.16 : 0.5), .clear],
-                                                 startPoint: .bottom, endPoint: .top))
-                            .frame(width: w * 0.8, height: h * 0.13)
-                            .position(x: w * 0.52, y: h * 0.95).blur(radius: 3)
-                        // primary specular streak (left), crisp glass reflection
-                        RoundedRectangle(cornerRadius: w * 0.05)
-                            .fill(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.55 : 0.95),
-                                                          .white.opacity(scheme == .dark ? 0.06 : 0.18)],
-                                                 startPoint: .top, endPoint: .bottom))
-                            .frame(width: w * 0.07, height: h * 0.6).blur(radius: 1.3)
-                            .position(x: w * 0.23, y: h * 0.42)
-                        // secondary thin streak
-                        Capsule().fill(.white.opacity(scheme == .dark ? 0.32 : 0.62))
-                            .frame(width: w * 0.02, height: h * 0.52).blur(radius: 0.8)
-                            .position(x: w * 0.33, y: h * 0.44)
-                        // far (right) wall — bright thin edge
-                        Capsule().fill(.white.opacity(scheme == .dark ? 0.28 : 0.5))
-                            .frame(width: w * 0.018, height: h * 0.56).blur(radius: 1.0)
-                            .position(x: w * 0.865, y: h * 0.46)
-                    }
-                    .clipShape(jarShape).allowsHitTesting(false)
-
-                    // mouth rim — glass thickness, brighter where light hits (top-left)
-                    Ellipse()
-                        .stroke(LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.55 : 0.9),
-                                                        rimColor.opacity(0.5)],
-                                               startPoint: .topLeading, endPoint: .bottomTrailing),
-                                lineWidth: 1.7)
-                        .frame(width: w * 0.72, height: h * 0.052)
-                        .position(x: w * 0.5, y: h * 0.035).allowsHitTesting(false)
-                    Ellipse()                                   // soft inner-mouth shadow under the rim
-                        .fill(LinearGradient(colors: [glassEdge.opacity(0.20), .clear], startPoint: .top, endPoint: .bottom))
-                        .frame(width: w * 0.64, height: h * 0.06)
-                        .position(x: w * 0.5, y: h * 0.06).allowsHitTesting(false)
-
-                    jarShape.stroke(outlineGradient, lineWidth: 1.8).allowsHitTesting(false)
+            ZStack {
+                JarGlass.shape().fill(JarGlass.backWall(scheme))          // back wall
+                GeometryReader { geo in
+                    PhysicsBeads(metric: metric, scores: scores, size: geo.size)
                 }
+                .clipShape(JarGlass.shape())                              // beads inside
+                JarFrontGlass()                                          // reflections + rim + outline
             }
         }
         .shadow(color: .black.opacity(scheme == .dark ? 0.0 : 0.10), radius: 10, y: 8)
@@ -366,30 +402,5 @@ struct JarView: View {
         .frame(width: 64)
         .shadow(color: .black.opacity(0.18), radius: 3, y: 3)
         .zIndex(2)
-    }
-
-    // colors — clear glass reads cool/neutral, not warm frosted
-    private var glassEdge: Color {
-        scheme == .dark ? Color(hex: "#9aa6d0") : Color(hex: "#aebab4")
-    }
-    private var backWall: LinearGradient {
-        LinearGradient(stops: [
-            .init(color: glassEdge.opacity(scheme == .dark ? 0.34 : 0.42), location: 0),
-            .init(color: glassEdge.opacity(0.10), location: 0.12),
-            .init(color: .clear, location: 0.32),
-            .init(color: .clear, location: 0.68),
-            .init(color: glassEdge.opacity(0.12), location: 0.88),
-            .init(color: glassEdge.opacity(scheme == .dark ? 0.36 : 0.48), location: 1)],
-            startPoint: .leading, endPoint: .trailing)
-    }
-    private var outlineGradient: LinearGradient {
-        scheme == .dark
-        ? LinearGradient(colors: [Color(hex: "#cfd8f5").opacity(0.8), Color(hex: "#8e9bcb").opacity(0.5)],
-                         startPoint: .topLeading, endPoint: .bottomTrailing)
-        : LinearGradient(colors: [Color(hex: "#f3f5f2"), Color(hex: "#a7b1ac")],
-                         startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-    private var rimColor: Color {
-        scheme == .dark ? Color(hex: "#c9d2f0").opacity(0.7) : Color(hex: "#cdd3ce")
     }
 }

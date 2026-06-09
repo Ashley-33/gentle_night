@@ -136,14 +136,9 @@ private struct DropOverlay: View {
                     .frame(width: 92, height: 22)
                     .offset(y: lid ? 0 : -44).opacity(lid ? 1 : 0)
                     .zIndex(2)
-                // glass with beads
+                // glass with beads — same clear-glass chrome as the Trends jar
                 ZStack(alignment: .bottom) {
-                    UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 28,
-                                           bottomTrailingRadius: 28, topTrailingRadius: 8)
-                        .fill(.white.opacity(scheme == .dark ? 0.08 : 0.4))
-                        .overlay(UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 28,
-                                                        bottomTrailingRadius: 28, topTrailingRadius: 8)
-                            .stroke(Palette.glassBorder, lineWidth: 1.5))
+                    JarGlass.shape(top: 8, bottom: 28).fill(JarGlass.backWall(scheme))
                         .frame(width: 140, height: 210)
                     HStack(spacing: 6) {
                         ForEach(order.indices, id: \.self) { i in
@@ -155,6 +150,8 @@ private struct DropOverlay: View {
                         }
                     }
                     .padding(.bottom, 8)
+                    JarFrontGlass(top: 8, bottom: 28)
+                        .frame(width: 140, height: 210)
                 }
             }
             .scaleEffect(leave ? 0.85 : 1).opacity(leave ? 0 : 1)
