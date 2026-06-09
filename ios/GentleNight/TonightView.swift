@@ -48,9 +48,9 @@ struct TonightView: View {
                     .padding(.top, 6)
             }
             Spacer(minLength: 4)
-            LampThemeButton().padding(.top, 4)
+            LampThemeButton().padding(.top, 2)
         }
-        .padding(.top, 6).padding(.bottom, 6)
+        .padding(.bottom, 6)
     }
 
     private func card(_ m: Metric) -> some View {
