@@ -52,12 +52,12 @@ struct Crescent: Shape {
 struct MoonView: View {
     var glow = false
     var body: some View {
-        Crescent()
-            .fill(LinearGradient(colors: [Color(hex: "#fff3c6"), Color(hex: "#f1c04a")],
-                                 startPoint: .topLeading, endPoint: .bottomTrailing),
-                  style: FillStyle(eoFill: true))
-            .rotationEffect(.degrees(-18))
-            .shadow(color: Color(hex: "#f5cf6c").opacity(glow ? 0.8 : 0.45), radius: glow ? 14 : 8)
+        Image(systemName: "moon.fill")
+            .resizable().scaledToFit()
+            .foregroundStyle(LinearGradient(colors: [Color(hex: "#fff3c6"), Color(hex: "#f3c552")],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing))
+            .rotationEffect(.degrees(-20))
+            .shadow(color: Color(hex: "#f5cf6c").opacity(glow ? 0.85 : 0.5), radius: glow ? 11 : 6)
     }
 }
 
