@@ -55,35 +55,42 @@ enum BeadTex {
     static func bodyImage(_ c: BeadColors) -> UIImage {
         let key = colorKey(c)
         if let i = bodyImgCache[key] { return i }
-        let light = punch(UIColor(c.light), sat: 1.10, bri: 1.12)
-        let mid   = punch(UIColor(c.mid),   sat: 1.24, bri: 1.10)
-        let deep  = punch(UIColor(c.deep),  sat: 1.18, bri: 1.02)
+        // softer, paler, more luminous — a translucent pearl rather than a glossy marble
+        let light = punch(UIColor(c.light), sat: 0.86, bri: 1.18)
+        let mid   = punch(UIColor(c.mid),   sat: 0.98, bri: 1.14)
+        let deep  = punch(UIColor(c.deep),  sat: 1.00, bri: 1.07)
         let S: CGFloat = 104
         let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
             let g = ctx.cgContext
             let circle = CGRect(x: 4, y: 4, width: S - 8, height: S - 8)
             g.saveGState()
             g.addEllipse(in: circle); g.clip()
-            // base glass: luminous core → saturated mid → colour stays bright to edge (deep only a thin rim)
+            // pearly base: pale luminous core → soft colour → light translucent edge
             let cols = [light.cgColor, mid.cgColor, deep.cgColor] as CFArray
-            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 0.66, 1]) {
-                // concentric, with a comfortably large startRadius — a tiny startRadius makes
-                // Core Graphics emit garbage pixels at the focal centre (the "transparent dot").
-                let core = CGPoint(x: S * 0.42, y: S * 0.40)
+            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 0.6, 1]) {
+                let core = CGPoint(x: S * 0.42, y: S * 0.41)
                 g.drawRadialGradient(grad, startCenter: core, startRadius: S * 0.14,
                                      endCenter: core, endRadius: S * 0.60,
                                      options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
             }
-            // transmitted-light caustic — bright pool low in the glass where light focuses through
-            let caustic = [light.withAlphaComponent(0.85).cgColor, light.withAlphaComponent(0).cgColor] as CFArray
+            // inner luminosity — soft pearly glow from within
+            let glow = [UIColor.white.withAlphaComponent(0.30).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            if let gg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: glow, locations: [0, 1]) {
+                let gc = CGPoint(x: S * 0.42, y: S * 0.40)
+                g.drawRadialGradient(gg, startCenter: gc, startRadius: S * 0.10,
+                                     endCenter: gc, endRadius: S * 0.46, options: [.drawsBeforeStartLocation])
+            }
+            // soft transmission pool low in the bead (diffuse, lighter)
+            let caustic = [light.withAlphaComponent(0.5).cgColor, light.withAlphaComponent(0).cgColor] as CFArray
             if let cg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: caustic, locations: [0, 1]) {
-                g.drawRadialGradient(cg, startCenter: CGPoint(x: S * 0.46, y: S * 0.66), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.46, y: S * 0.66), endRadius: S * 0.30, options: [])
+                let cc = CGPoint(x: S * 0.5, y: S * 0.66)
+                g.drawRadialGradient(cg, startCenter: cc, startRadius: S * 0.06,
+                                     endCenter: cc, endRadius: S * 0.32, options: [.drawsBeforeStartLocation])
             }
             g.restoreGState()
-            // thin rim — defines the edge on the pale glass jar
-            g.setStrokeColor(deep.withAlphaComponent(0.32).cgColor)
-            g.setLineWidth(1.0)
+            // whisper of an edge so it still reads as round, but stays translucent
+            g.setStrokeColor(deep.withAlphaComponent(0.18).cgColor)
+            g.setLineWidth(0.8)
             g.strokeEllipse(in: circle.insetBy(dx: 0.6, dy: 0.6))
         }
         bodyImgCache[key] = img; return img
@@ -97,33 +104,29 @@ enum BeadTex {
             let g = ctx.cgContext
             g.saveGState()
             g.addEllipse(in: CGRect(x: 4, y: 4, width: S - 8, height: S - 8)); g.clip()
-            // terminator — darker far edge for roundness. Concentric centre offset toward the
-            // light so bottom-right reads darker WITHOUT a two-point focal cusp (the grey dot).
-            let term = [UIColor.clear.cgColor, UIColor(red: 0.10, green: 0.07, blue: 0.04, alpha: 0.22).cgColor] as CFArray
+            // whisper of a terminator — just enough roundness, keeps the pearl evenly lit
+            let term = [UIColor.clear.cgColor, UIColor(red: 0.14, green: 0.11, blue: 0.08, alpha: 0.12).cgColor] as CFArray
             if let tg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: term, locations: [0, 1]) {
                 let lc = CGPoint(x: S * 0.40, y: S * 0.40)
-                g.drawRadialGradient(tg, startCenter: lc, startRadius: S * 0.30,
-                                     endCenter: lc, endRadius: S * 0.64,
+                g.drawRadialGradient(tg, startCenter: lc, startRadius: S * 0.34,
+                                     endCenter: lc, endRadius: S * 0.66,
                                      options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
             }
-            // soft bloom AROUND the main glint (concentric) so the highlight reads as one piece
-            let sheen = [UIColor.white.withAlphaComponent(0.28).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            // soft pearly sheen — a broad, diffuse satin highlight (no sharp glint)
+            let sheen = [UIColor.white.withAlphaComponent(0.46).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
             if let sg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheen, locations: [0, 1]) {
-                g.drawRadialGradient(sg, startCenter: CGPoint(x: S * 0.34, y: S * 0.25), startRadius: 0,
-                                     endCenter: CGPoint(x: S * 0.34, y: S * 0.25), endRadius: S * 0.30, options: [])
+                let sc = CGPoint(x: S * 0.37, y: S * 0.31)
+                g.drawRadialGradient(sg, startCenter: sc, startRadius: S * 0.05,
+                                     endCenter: sc, endRadius: S * 0.30, options: [.drawsBeforeStartLocation])
             }
-            // soft inner transmission arc, pulled well inside the edge → no white rim
-            let rim = UIBezierPath(arcCenter: CGPoint(x: S / 2, y: S / 2), radius: (S - 24) / 2,
-                                   startAngle: .pi * 0.22, endAngle: .pi * 0.78, clockwise: true)
-            rim.lineWidth = 3.0; rim.lineCapStyle = .round
-            UIColor.white.withAlphaComponent(0.30).setStroke(); rim.stroke()
+            // gentle catch-light (pearl "eye") — soft, not a hard pinpoint
+            let eye = [UIColor.white.withAlphaComponent(0.8).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            if let eg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: eye, locations: [0, 1]) {
+                let ec = CGPoint(x: S * 0.35, y: S * 0.29)
+                g.drawRadialGradient(eg, startCenter: ec, startRadius: S * 0.03,
+                                     endCenter: ec, endRadius: S * 0.10, options: [.drawsBeforeStartLocation])
+            }
             g.restoreGState()
-            // sharp specular hot-spot (top-left), the signature glass glint
-            g.setFillColor(UIColor.white.withAlphaComponent(0.98).cgColor)
-            g.fillEllipse(in: CGRect(x: S * 0.28, y: S * 0.20, width: S * 0.13, height: S * 0.105))
-            // ultra-bright pinpoint core of the glint
-            g.setFillColor(UIColor.white.cgColor)
-            g.fillEllipse(in: CGRect(x: S * 0.31, y: S * 0.225, width: S * 0.05, height: S * 0.045))
         }
         glossImgCache = img; return img
     }
