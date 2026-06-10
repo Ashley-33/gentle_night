@@ -377,11 +377,11 @@ struct AmbientBackdrop: View {
                 RadialGradient(colors: [Palette.bg2.opacity(0.9), .clear],
                                center: .topLeading, startRadius: 0, endRadius: 500)
                 if scheme == .dark {
-                    // cozy warm lamp glow (top-left) + cool moon glow (top-right)
-                    RadialGradient(colors: [Color(hex: "#ffcf7a").opacity(0.22), .clear],
-                                   center: .topLeading, startRadius: 0, endRadius: 300)
-                    RadialGradient(colors: [Color(hex: "#8e98dd").opacity(0.15), .clear],
-                                   center: UnitPoint(x: 0.96, y: 0.05), startRadius: 0, endRadius: 250)
+                    // warm glow from the lamp (top-right) + soft cool moon glow (top-left)
+                    RadialGradient(colors: [Color(hex: "#ffcf7a").opacity(0.26), .clear],
+                                   center: UnitPoint(x: 0.93, y: 0.05), startRadius: 0, endRadius: 320)
+                    RadialGradient(colors: [Color(hex: "#8e98dd").opacity(0.13), .clear],
+                                   center: .topLeading, startRadius: 0, endRadius: 260)
                 } else {
                     // soft clouds drifting behind the header
                     Ellipse().fill(Color(hex: "#fce7ea").opacity(0.55))
@@ -399,6 +399,77 @@ struct AmbientBackdrop: View {
             }
             .ignoresSafeArea()
         }
+    }
+}
+
+// MARK: - Sleeping cloud mascot (cozy bedtime companion)
+
+struct SleepyCloud: View {
+    var size: CGFloat = 54
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            let cx = w * 0.5, cy = h * 0.6
+            let cloud = scheme == .dark ? Color(hex: "#cdd6f2") : Color(hex: "#d6def2")
+            for p in [(-0.27, 0.05, 0.24), (-0.02, -0.13, 0.30), (0.27, 0.06, 0.24), (0.0, 0.2, 0.32)] {
+                let r = w * CGFloat(p.2)
+                ctx.fill(Path(ellipseIn: CGRect(x: cx + w * CGFloat(p.0) - r, y: cy + h * CGFloat(p.1) - r, width: 2 * r, height: 2 * r)),
+                         with: .color(cloud))
+            }
+            let ink = Color(hex: "#80708e")
+            for sx in [cx - w * 0.12, cx + w * 0.12] {   // closed sleeping eyes
+                var eye = Path()
+                eye.move(to: CGPoint(x: sx - w * 0.055, y: cy))
+                eye.addQuadCurve(to: CGPoint(x: sx + w * 0.055, y: cy), control: CGPoint(x: sx, y: cy + h * 0.06))
+                ctx.stroke(eye, with: .color(ink), style: StrokeStyle(lineWidth: max(1, w * 0.03), lineCap: .round))
+            }
+            var smile = Path()
+            smile.move(to: CGPoint(x: cx - w * 0.06, y: cy + h * 0.1))
+            smile.addQuadCurve(to: CGPoint(x: cx + w * 0.06, y: cy + h * 0.1), control: CGPoint(x: cx, y: cy + h * 0.16))
+            ctx.stroke(smile, with: .color(ink), style: StrokeStyle(lineWidth: max(1, w * 0.026), lineCap: .round))
+            let cheek = Color(hex: "#f2a8a0").opacity(0.5)
+            for sx in [cx - w * 0.21, cx + w * 0.21] {
+                ctx.fill(Path(ellipseIn: CGRect(x: sx - w * 0.05, y: cy + h * 0.035, width: w * 0.1, height: w * 0.08)), with: .color(cheek))
+            }
+            let z = Color(hex: scheme == .dark ? "#ffe6ad" : "#cbab5e")
+            ctx.draw(Text("z").font(.system(size: w * 0.17, weight: .bold, design: .rounded)).foregroundColor(z),
+                     at: CGPoint(x: cx + w * 0.33, y: cy - h * 0.28))
+            ctx.draw(Text("z").font(.system(size: w * 0.12, weight: .bold, design: .rounded)).foregroundColor(z),
+                     at: CGPoint(x: cx + w * 0.44, y: cy - h * 0.42))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Decorative plant (corner greenery)
+
+struct CornerLeaves: View {
+    var size: CGFloat = 96
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            let greens = [Color(hex: "#8fc873"), Color(hex: "#79b35d"), Color(hex: "#a9d98c"), Color(hex: "#6aa84f")]
+            let stem = CGPoint(x: w * 0.5, y: h * 0.98)
+            let leaves: [(CGFloat, CGFloat, Double, CGFloat, Int)] = [
+                (0, -0.52, 0, 0.42, 1), (-0.19, -0.34, -34, 0.36, 0), (0.19, -0.36, 34, 0.36, 2),
+                (-0.3, -0.15, -62, 0.30, 3), (0.3, -0.17, 62, 0.30, 1), (-0.1, -0.22, -16, 0.34, 2), (0.12, -0.24, 16, 0.34, 0)
+            ]
+            for lf in leaves {
+                ctx.drawLayer { l in
+                    l.translateBy(x: stem.x + w * lf.0, y: stem.y + h * lf.1)
+                    l.rotate(by: .degrees(lf.2))
+                    let len = h * lf.3
+                    var leaf = Path()
+                    leaf.move(to: CGPoint(x: 0, y: len / 2))
+                    leaf.addQuadCurve(to: CGPoint(x: 0, y: -len / 2), control: CGPoint(x: len * 0.38, y: 0))
+                    leaf.addQuadCurve(to: CGPoint(x: 0, y: len / 2), control: CGPoint(x: -len * 0.38, y: 0))
+                    l.fill(leaf, with: .color(greens[lf.4]))
+                }
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 

@@ -7,7 +7,11 @@ struct TrendsView: View {
     @State private var restQuote = Quotes.random(Quotes.rest)
 
     var body: some View {
-        ScrollView {
+        ZStack(alignment: .topTrailing) {
+            if scheme == .dark {
+                CornerLeaves(size: 104).offset(x: 24, y: 46).allowsHitTesting(false)
+            }
+            ScrollView {
             VStack(spacing: 0) {
                 // header
                 HStack(alignment: .top, spacing: 8) {
@@ -102,6 +106,7 @@ struct TrendsView: View {
                 .padding(.top, 22)
             }
             .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
+            }
         }
     }
 }
