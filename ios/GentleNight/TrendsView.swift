@@ -72,7 +72,11 @@ struct TrendsView: View {
                     }
                 }
                 .padding(.top, 8)
-                FairyLights().padding(.top, -2)   // warm lights at the jar base
+                ZStack {                          // jars rest on a surface, lights along it
+                    JarSurface()
+                    FairyLights().offset(y: -1)
+                }
+                .padding(.top, -5)
 
                 // insights
                 HStack(alignment: .top, spacing: 9) {

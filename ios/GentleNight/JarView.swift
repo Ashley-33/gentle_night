@@ -317,13 +317,39 @@ struct PhysicsBeads: View {
     }
 }
 
+// MARK: - Mason-jar silhouette (wide body, shoulders curving in to a short neck)
+
+struct MasonJar: Shape {
+    func path(in rect: CGRect) -> Path {
+        let W = rect.width, H = rect.height
+        let nb = W * 0.12          // neck inset (neck is narrower than the body)
+        let neckBot = H * 0.10     // bottom of the straight neck
+        let shoulder = H * 0.21    // where the shoulder meets the full-width body
+        let br = W * 0.27          // rounded bottom
+        let topR = W * 0.045       // tiny rounding at the neck rim
+        var p = Path()
+        p.move(to: CGPoint(x: nb + topR, y: 0))
+        p.addLine(to: CGPoint(x: W - nb - topR, y: 0))
+        p.addQuadCurve(to: CGPoint(x: W - nb, y: topR), control: CGPoint(x: W - nb, y: 0))
+        p.addLine(to: CGPoint(x: W - nb, y: neckBot))
+        p.addQuadCurve(to: CGPoint(x: W, y: shoulder), control: CGPoint(x: W, y: neckBot))
+        p.addLine(to: CGPoint(x: W, y: H - br))
+        p.addQuadCurve(to: CGPoint(x: W - br, y: H), control: CGPoint(x: W, y: H))
+        p.addLine(to: CGPoint(x: br, y: H))
+        p.addQuadCurve(to: CGPoint(x: 0, y: H - br), control: CGPoint(x: 0, y: H))
+        p.addLine(to: CGPoint(x: 0, y: shoulder))
+        p.addQuadCurve(to: CGPoint(x: nb, y: neckBot), control: CGPoint(x: 0, y: neckBot))
+        p.addLine(to: CGPoint(x: nb, y: topR))
+        p.addQuadCurve(to: CGPoint(x: nb + topR, y: 0), control: CGPoint(x: nb, y: 0))
+        p.closeSubpath()
+        return p
+    }
+}
+
 // MARK: - Reusable clear-glass jar chrome (shared by Trends jar + drop animation)
 
 enum JarGlass {
-    static func shape(top: CGFloat = 12, bottom: CGFloat = 34) -> UnevenRoundedRectangle {
-        UnevenRoundedRectangle(topLeadingRadius: top, bottomLeadingRadius: bottom,
-                               bottomTrailingRadius: bottom, topTrailingRadius: top)
-    }
+    static func shape(top: CGFloat = 12, bottom: CGFloat = 34) -> MasonJar { MasonJar() }
     static func edge(_ s: ColorScheme) -> Color {
         s == .dark ? Color(hex: "#9aa6d0") : Color(hex: "#aebab4")
     }

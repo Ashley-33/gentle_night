@@ -512,3 +512,25 @@ struct FairyLights: View {
         .allowsHitTesting(false)
     }
 }
+
+// MARK: - Surface the jars rest on (wood in dark, soft shelf in light)
+
+struct JarSurface: View {
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .fill(LinearGradient(
+                colors: scheme == .dark
+                    ? [Color(hex: "#54422d"), Color(hex: "#33261a")]
+                    : [Color(hex: "#e8dcc4"), Color(hex: "#d4c6a7")],
+                startPoint: .top, endPoint: .bottom))
+            .frame(height: 15)
+            .overlay(alignment: .top) {   // front edge catching light
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(.white.opacity(scheme == .dark ? 0.12 : 0.55))
+                    .frame(height: 1.4).padding(.horizontal, 2)
+            }
+            .shadow(color: .black.opacity(scheme == .dark ? 0.45 : 0.12), radius: 4, y: 3)
+            .allowsHitTesting(false)
+    }
+}
