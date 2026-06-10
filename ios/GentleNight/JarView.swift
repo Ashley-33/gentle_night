@@ -34,6 +34,22 @@ enum BeadTex {
     nonisolated(unsafe) private static var glossTex: SKTexture?
     nonisolated(unsafe) private static var shadowTex: SKTexture?
     nonisolated(unsafe) private static var sparkleTex: SKTexture?
+    nonisolated(unsafe) private static var glowTex: SKTexture?
+
+    /// Soft white radial — tinted per bead and blended additively for a dark-mode halo.
+    static func glow() -> SKTexture {
+        if let t = glowTex { return t }
+        let S: CGFloat = 96
+        let img = UIGraphicsImageRenderer(size: CGSize(width: S, height: S)).image { ctx in
+            let cols = [UIColor.white.withAlphaComponent(0.95).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 1]) {
+                let c = CGPoint(x: S / 2, y: S / 2)
+                ctx.cgContext.drawRadialGradient(grad, startCenter: c, startRadius: S * 0.06,
+                                                 endCenter: c, endRadius: S * 0.5, options: [.drawsBeforeStartLocation])
+            }
+        }
+        let t = SKTexture(image: img); glowTex = t; return t
+    }
 
     // saturate + lift so muted/grey scores read as luminous glass, not mud
     private static func punch(_ ui: UIColor, sat: CGFloat, bri: CGFloat) -> UIColor {
@@ -186,8 +202,9 @@ enum BeadTex {
 final class JarScene: SKScene {
     struct Spec { let r: CGFloat; let metric: Metric; let score: Int }
     private var configured = false
-    // bead = rotating body + screen-fixed gloss child + tracked contact shadow
-    private var beads: [(body: SKSpriteNode, gloss: SKSpriteNode, shadow: SKSpriteNode, r: CGFloat)] = []
+    var glowOn = false   // dark-mode radiant halo
+    // bead = rotating body + screen-fixed gloss + tracked shadow + optional glow halo
+    private var beads: [(body: SKSpriteNode, gloss: SKSpriteNode, shadow: SKSpriteNode, glow: SKSpriteNode?, r: CGFloat)] = []
 
     func configure(size: CGSize, specs: [Spec]) {
         guard size.width > 1, size.height > 1 else { return }
@@ -235,7 +252,20 @@ final class JarScene: SKScene {
                 sp.blendMode = .add
                 gloss.addChild(sp)   // rides the screen-fixed gloss
             }
-            beads.append((body, gloss, shadow, s.r))
+            // radiant halo (dark mode only)
+            var glowNode: SKSpriteNode? = nil
+            if glowOn {
+                let gn = SKSpriteNode(texture: BeadTex.glow())
+                gn.size = CGSize(width: s.r * 3.0, height: s.r * 3.0)
+                gn.color = UIColor(Ramp.colors(s.metric, s.score).mid)
+                gn.colorBlendFactor = 1.0
+                gn.blendMode = .add
+                gn.alpha = 0.5
+                gn.zPosition = 0.5
+                addChild(gn)
+                glowNode = gn
+            }
+            beads.append((body, gloss, shadow, glowNode, s.r))
         }
         configured = true
     }
@@ -248,6 +278,7 @@ final class JarScene: SKScene {
         for b in beads {
             b.gloss.zRotation = -b.body.zRotation
             b.shadow.position = CGPoint(x: b.body.position.x, y: b.body.position.y - b.r * 0.6)
+            b.glow?.position = b.body.position
         }
     }
 }
@@ -259,13 +290,15 @@ struct PhysicsBeads: View {
     let scores: [Int]
     let size: CGSize
     @State private var scene = JarScene()
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         SpriteView(scene: scene, options: [.allowsTransparency])
-            .onAppear { scene.isPaused = false; scene.configure(size: size, specs: specs()) }
+            .onAppear { scene.isPaused = false; scene.glowOn = scheme == .dark; scene.configure(size: size, specs: specs()) }
             .onDisappear { scene.isPaused = true }
             .onChange(of: scores) { _ in scene.configure(size: size, specs: specs()) }
             .onChange(of: size) { _ in scene.configure(size: size, specs: specs()) }
+            .onChange(of: scheme) { _ in scene.glowOn = scheme == .dark; scene.configure(size: size, specs: specs()) }
     }
 
     private func specs() -> [JarScene.Spec] {

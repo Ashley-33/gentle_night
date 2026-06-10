@@ -283,6 +283,15 @@ struct Mascot: View {
             }
         }
         .frame(width: size, height: size)
+        .shadow(color: glowColor.opacity(0.55), radius: size * 0.13)   // soft glow halo
+    }
+
+    private var glowColor: Color {
+        switch metric {
+        case .mood: Color(hex: "#f6cf6a")
+        case .body: Color(hex: "#9bd17e")
+        case .tomorrow: Color(hex: "#c3a7ea")
+        }
     }
 
     private let face = Color(hex: "#6e5638")
@@ -305,19 +314,15 @@ struct Mascot: View {
     }
 
     private func drawSun(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
-        let r = w * 0.29
+        let r = w * 0.32   // chubby body
         let ray = Color(hex: "#f4c24a")
-        for i in 0..<8 {
+        for i in 0..<8 {   // short stubby rounded rays
             let ang = Double(i) * .pi / 4
             let dx = CGFloat(cos(ang)), dy = CGFloat(sin(ang))
-            let px = -dy, py = dx, pw = r * 0.1
-            let r1 = r * 1.16, r2 = r * 1.5
             var p = Path()
-            p.move(to: CGPoint(x: cx + dx * r1 + px * pw, y: cy + dy * r1 + py * pw))
-            p.addLine(to: CGPoint(x: cx + dx * r2, y: cy + dy * r2))
-            p.addLine(to: CGPoint(x: cx + dx * r1 - px * pw, y: cy + dy * r1 - py * pw))
-            p.closeSubpath()
-            ctx.fill(p, with: .color(ray))
+            p.move(to: CGPoint(x: cx + dx * r * 1.04, y: cy + dy * r * 1.04))
+            p.addLine(to: CGPoint(x: cx + dx * r * 1.3, y: cy + dy * r * 1.3))
+            ctx.stroke(p, with: .color(ray), style: StrokeStyle(lineWidth: w * 0.075, lineCap: .round))
         }
         ctx.fill(Path(ellipseIn: CGRect(x: cx - r, y: cy - r, width: 2 * r, height: 2 * r)),
                  with: .radialGradient(Gradient(colors: [Color(hex: "#ffe99c"), Color(hex: "#f6c84e")]),
@@ -326,23 +331,23 @@ struct Mascot: View {
     }
 
     private func drawLeaf(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
-        let r = w * 0.36
+        let r = w * 0.4   // plump, almost-round leaf
         var leaf = Path()
-        let top = CGPoint(x: cx, y: cy - r), bot = CGPoint(x: cx, y: cy + r)
+        let top = CGPoint(x: cx, y: cy - r * 0.74), bot = CGPoint(x: cx, y: cy + r * 0.74)
         leaf.move(to: top)
-        leaf.addQuadCurve(to: bot, control: CGPoint(x: cx + r * 0.82, y: cy))
-        leaf.addQuadCurve(to: top, control: CGPoint(x: cx - r * 0.82, y: cy))
+        leaf.addQuadCurve(to: bot, control: CGPoint(x: cx + r * 1.28, y: cy))
+        leaf.addQuadCurve(to: top, control: CGPoint(x: cx - r * 1.28, y: cy))
         leaf.closeSubpath()
         ctx.fill(leaf, with: .linearGradient(Gradient(colors: [Color(hex: "#aedb8e"), Color(hex: "#7cb85e")]),
                                              startPoint: CGPoint(x: cx - r, y: cy - r), endPoint: CGPoint(x: cx + r, y: cy + r)))
         var vein = Path()
-        vein.move(to: CGPoint(x: cx, y: cy + r * 0.72)); vein.addLine(to: CGPoint(x: cx, y: cy - r * 0.6))
-        ctx.stroke(vein, with: .color(Color(hex: "#6aa84f").opacity(0.55)), lineWidth: max(0.8, r * 0.05))
-        drawFace(ctx, cx, cy + r * 0.05, r * 0.82)
+        vein.move(to: CGPoint(x: cx, y: cy + r * 0.55)); vein.addLine(to: CGPoint(x: cx, y: cy - r * 0.45))
+        ctx.stroke(vein, with: .color(Color(hex: "#6aa84f").opacity(0.5)), lineWidth: max(0.8, r * 0.05))
+        drawFace(ctx, cx, cy + r * 0.05, r * 0.66)
     }
 
     private func drawStar(_ ctx: GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ w: CGFloat) {
-        let R = w * 0.42, ri = R * 0.45
+        let R = w * 0.33, ri = R * 0.54   // fat star; thick round stroke puffs the points
         var star = Path()
         for i in 0..<10 {
             let ang = -Double.pi / 2 + Double(i) * .pi / 5
@@ -351,9 +356,12 @@ struct Mascot: View {
             if i == 0 { star.move(to: p) } else { star.addLine(to: p) }
         }
         star.closeSubpath()
-        ctx.fill(star, with: .radialGradient(Gradient(colors: [Color(hex: "#ffe49a"), Color(hex: "#f3c14e")]),
-                                             center: CGPoint(x: cx - R * 0.15, y: cy - R * 0.2), startRadius: 0, endRadius: R * 1.1))
-        drawFace(ctx, cx, cy + R * 0.06, R * 0.62)
+        let shade = GraphicsContext.Shading.radialGradient(
+            Gradient(colors: [Color(hex: "#ffe49a"), Color(hex: "#f3c14e")]),
+            center: CGPoint(x: cx - R * 0.12, y: cy - R * 0.16), startRadius: 0, endRadius: R * 1.1)
+        ctx.fill(star, with: shade)
+        ctx.stroke(star, with: shade, style: StrokeStyle(lineWidth: R * 0.32, lineCap: .round, lineJoin: .round))
+        drawFace(ctx, cx, cy + R * 0.04, R * 0.56)
     }
 }
 
