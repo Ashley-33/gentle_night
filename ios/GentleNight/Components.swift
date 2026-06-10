@@ -237,7 +237,7 @@ struct LampToggle: View {
                 }
             }
         }
-        .frame(width: 96, height: 60)
+        .frame(width: 106, height: 66)
         .contentShape(Rectangle())
     }
 }

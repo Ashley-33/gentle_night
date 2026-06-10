@@ -48,10 +48,7 @@ struct TonightView: View {
                     .padding(.top, 6)
             }
             Spacer(minLength: 4)
-            VStack(spacing: 3) {
-                LampThemeButton().padding(.top, 2)
-                SleepyCloud(size: 50)
-            }
+            LampThemeButton().padding(.top, 2)
         }
         .padding(.bottom, 6)
     }

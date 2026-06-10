@@ -9,7 +9,7 @@ struct TrendsView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if scheme == .dark {
-                CornerLeaves(size: 104).offset(x: 24, y: 46).allowsHitTesting(false)
+                CornerLeaves(size: 124).offset(x: 42, y: 0).allowsHitTesting(false)
             }
             ScrollView {
             VStack(spacing: 0) {
@@ -17,9 +17,10 @@ struct TrendsView: View {
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("✨ Your gentle patterns")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(Palette.title)
                             .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(1)
                         Text("你的状态，正在被温柔看见。")
                             .font(.system(size: 13)).foregroundStyle(Palette.txtSoft)
                     }
