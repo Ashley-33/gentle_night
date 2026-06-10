@@ -68,7 +68,7 @@ struct TrendsView: View {
                 HStack(alignment: .bottom, spacing: 12) {
                     ForEach(Metric.allCases) { m in
                         JarView(metric: m, scores: store.inRange(range).map { $0.score(m) })
-                            .frame(maxWidth: .infinity).frame(height: 250)
+                            .frame(maxWidth: .infinity).frame(height: 200)
                     }
                 }
                 .padding(.top, 8)
