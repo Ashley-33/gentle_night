@@ -10,7 +10,10 @@ struct TonightView: View {
     @State private var showDrop = false
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
+            if scheme == .dark {
+                CornerLeaves(size: 134).offset(x: 30, y: 40).allowsHitTesting(false)
+            }
             ScrollView {
                 VStack(spacing: 12) {
                     hero

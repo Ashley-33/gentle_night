@@ -87,12 +87,13 @@ struct TrendsView: View {
                                 .font(.system(size: 11.5)).foregroundStyle(Palette.txt)
                                 .lineSpacing(3).fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 11).padding(.vertical, 13)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .background(Palette.glass.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.glassBorder, lineWidth: 1))
                     }
                 }
+                .fixedSize(horizontal: false, vertical: true)   // all three cards share the tallest height
                 .padding(.top, 16)
 
                 // rest banner
