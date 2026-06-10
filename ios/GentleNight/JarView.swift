@@ -323,8 +323,8 @@ struct MasonJar: Shape {
     func path(in rect: CGRect) -> Path {
         let W = rect.width, H = rect.height
         let nb = W * 0.12          // neck inset (neck is narrower than the body)
-        let neckBot = H * 0.10     // bottom of the straight neck
-        let shoulder = H * 0.21    // where the shoulder meets the full-width body
+        let neckBot = H * 0.045    // bottom of the straight neck (short, so the lid sits close)
+        let shoulder = H * 0.12    // where the shoulder meets the full-width body
         let br = W * 0.27          // rounded bottom
         let topR = W * 0.045       // tiny rounding at the neck rim
         var p = Path()
@@ -434,30 +434,31 @@ struct JarView: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(spacing: 0) {
-            cork
-            ZStack {
-                JarGlass.shape().fill(JarGlass.backWall(scheme))          // back wall
-                GeometryReader { geo in
-                    PhysicsBeads(metric: metric, scores: scores, size: geo.size)
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            ZStack(alignment: .top) {
+                ZStack {
+                    JarGlass.shape().fill(JarGlass.backWall(scheme))      // back wall
+                    PhysicsBeads(metric: metric, scores: scores, size: CGSize(width: w, height: h))
+                        .clipShape(JarGlass.shape())                      // beads inside
+                    JarFrontGlass()                                      // reflections + rim + outline
                 }
-                .clipShape(JarGlass.shape())                              // beads inside
-                JarFrontGlass()                                          // reflections + rim + outline
+                cork(width: w * 0.78)                                    // seated on the mouth
+                    .offset(y: -5)
             }
         }
         .shadow(color: .black.opacity(scheme == .dark ? 0.0 : 0.10), radius: 10, y: 8)
     }
 
-    private var cork: some View {
+    private func cork(width: CGFloat) -> some View {
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: 6)
                 .fill(LinearGradient(colors: [Color(hex: "#ecd3a6"), Color(hex: "#cba775")],
                                      startPoint: .top, endPoint: .bottom))
-                .frame(height: 20)
-            Capsule().fill(Color(hex: "#e6c89a")).frame(height: 7).padding(.horizontal, 8).offset(y: -3)
+                .frame(height: 24)
+            Capsule().fill(Color(hex: "#e6c89a")).frame(height: 8).padding(.horizontal, 8).offset(y: -3)
         }
-        .frame(width: 64)
+        .frame(width: width)
         .shadow(color: .black.opacity(0.18), radius: 3, y: 3)
-        .zIndex(2)
     }
 }
