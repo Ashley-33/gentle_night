@@ -13,7 +13,7 @@ struct TonightView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if scheme == .dark {
-                CornerLeaves(size: 134).offset(x: 30, y: 40).allowsHitTesting(false)
+                CornerLeaves(size: 128).offset(x: 38, y: 18).allowsHitTesting(false)
             }
             ScrollView {
                 VStack(spacing: 12) {
@@ -59,7 +59,7 @@ struct TonightView: View {
             Spacer(minLength: 4)
             LampThemeButton().padding(.top, 2)
         }
-        .padding(.bottom, 6)
+        .frame(height: 112, alignment: .top)   // fixed so the first card aligns with Trends
     }
 
     private func card(_ m: Metric) -> some View {

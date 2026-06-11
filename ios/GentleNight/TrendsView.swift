@@ -9,7 +9,7 @@ struct TrendsView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if scheme == .dark {
-                CornerLeaves(size: 124).offset(x: 42, y: 0).allowsHitTesting(false)
+                CornerLeaves(size: 128).offset(x: 38, y: 18).allowsHitTesting(false)
             }
             ScrollView {
             VStack(spacing: 0) {
@@ -27,6 +27,7 @@ struct TrendsView: View {
                     Spacer(minLength: 4)
                     LampThemeButton().padding(.top, 2)
                 }
+                .frame(height: 112, alignment: .top)   // match Tonight header height
 
                 // range pills
                 HStack(spacing: 6) {
@@ -49,7 +50,7 @@ struct TrendsView: View {
                 .padding(5)
                 .background(Palette.glass.opacity(0.5), in: RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.glassBorder, lineWidth: 1))
-                .padding(.top, 14)
+                .padding(.top, 12)
 
                 // jar labels
                 HStack(spacing: 12) {
