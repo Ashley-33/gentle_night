@@ -4,6 +4,7 @@ struct TonightView: View {
     @EnvironmentObject var store: Store
     @Environment(\.colorScheme) private var scheme
 
+    @AppStorage("gentle-night.onboarded") private var onboarded = false
     @State private var scores: [Metric: Int] = [.mood: 4, .body: 4, .tomorrow: 3]
     @State private var heroQuote = Quotes.random(Quotes.hero)
     @State private var savedHint = false
@@ -24,6 +25,11 @@ struct TonightView: View {
                             .font(.system(size: 12)).foregroundStyle(Palette.txtFaint)
                             .transition(.opacity)
                     }
+                    Button { onboarded = false } label: {   // replay the gentle intro
+                        Label("这是什么 · 重看引导", systemImage: "questionmark.circle")
+                            .font(.system(size: 12)).foregroundStyle(Palette.txtFaint.opacity(0.8))
+                    }
+                    .padding(.top, 6)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
